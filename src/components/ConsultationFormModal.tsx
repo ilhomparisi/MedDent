@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { X } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 import { getStoredSource, clearStoredSource, getTimeSpentOnPage, resetPageLoadTime } from '../hooks/useSourceTracking';
 
 interface ConsultationFormModalProps {
@@ -33,24 +33,18 @@ export default function ConsultationFormModal({ isOpen, onClose }: ConsultationF
       const source = getStoredSource() || 'Direct Visit';
       const timeSpent = getTimeSpentOnPage();
 
-      const { error } = await supabase
-        .from('consultation_forms')
-        .insert([
-          {
-            full_name: formData.fullName,
-            phone: formData.phone,
-            lives_in_tashkent: formData.livesInTashkent,
-            last_dentist_visit: formData.lastDentistVisit,
-            current_problems: formData.currentProblems,
-            previous_clinic_experience: formData.previousClinicExperience,
-            missing_teeth: formData.missingTeeth,
-            preferred_call_time: formData.preferredCallTime,
-            source: source,
-            time_spent_seconds: timeSpent,
-          },
-        ]);
-
-      if (error) throw error;
+      await api.submitConsultationForm({
+        full_name: formData.fullName,
+        phone: formData.phone,
+        lives_in_tashkent: formData.livesInTashkent,
+        last_dentist_visit: formData.lastDentistVisit,
+        current_problems: formData.currentProblems,
+        previous_clinic_experience: formData.previousClinicExperience,
+        missing_teeth: formData.missingTeeth,
+        preferred_call_time: formData.preferredCallTime,
+        source: source,
+        time_spent_seconds: timeSpent,
+      });
 
       clearStoredSource();
       resetPageLoadTime();

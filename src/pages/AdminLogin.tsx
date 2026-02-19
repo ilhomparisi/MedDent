@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 import { translations } from '../lib/translations';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -19,15 +19,12 @@ export default function AdminLogin() {
     setError('');
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (authError) throw authError;
-
-      if (data.user) {
+      const response = await api.login(email, password);
+      
+      if (response.success && response.token) {
         navigate('/adminpanel');
+      } else {
+        setError('Login muvaffaqiyatsiz. Qaytadan urinib ko\'ring.');
       }
     } catch (err: any) {
       setError(err.message || 'Login muvaffaqiyatsiz. Qaytadan urinib ko\'ring.');

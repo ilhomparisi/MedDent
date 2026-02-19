@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 import {
   Settings,
   Type,
@@ -51,7 +51,7 @@ export default function AdminPanel() {
   }, []);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const session = await api.getSession();
     if (!session) {
       navigate('/adminlogin');
       return;
@@ -60,7 +60,7 @@ export default function AdminPanel() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await api.logout();
     navigate('/');
   };
 

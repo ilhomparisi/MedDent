@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle2 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
+import { useConfiguration } from '../contexts/ConfigurationContext';
 
 export default function AboutSection() {
+  const { getConfig } = useConfiguration();
   const [backgroundImage, setBackgroundImage] = useState('');
   const [backgroundOpacity, setBackgroundOpacity] = useState(0.1);
-  const [uiTexts, setUiTexts] = useState({
-    title: 'Biz Haqimizda',
-    subtitle: 'Professional stomatologiya xizmatlari',
-    content: 'Biz zamonaviy stomatologiya klinikasimiz. Yuqori malakali shifokorlar va eng so\'nggi texnologiyalar bilan xizmat ko\'rsatamiz. Har bir bemor uchun individual yondashuv va professional davolanish kafolatlaymiz.',
-  });
-  const [aboutImage, setAboutImage] = useState('');
-  const [features, setFeatures] = useState<string[]>([
+  
+  const uiTexts = {
+    title: getConfig('about_title', 'Biz Haqimizda'),
+    subtitle: getConfig('about_subtitle', 'Professional stomatologiya xizmatlari'),
+    content: getConfig('about_content', 'Biz zamonaviy stomatologiya klinikasimiz. Yuqori malakali shifokorlar va eng so\'nggi texnologiyalar bilan xizmat ko\'rsatamiz.'),
+  };
+  
+  const aboutImage = getConfig('about_image', '');
+  const features = getConfig('about_features', [
     'Yuqori malakali mutaxassislar',
     'Zamonaviy uskunalar',
     'Xalqaro standartlar',
@@ -20,71 +24,17 @@ export default function AboutSection() {
 
   useEffect(() => {
     fetchBackground();
-    fetchUITexts();
-    fetchAboutSettings();
   }, []);
 
   const fetchBackground = async () => {
     try {
-      const { data, error } = await supabase
-        .from('section_backgrounds')
-        .select('image_url, opacity')
-        .eq('section_name', 'about')
-        .maybeSingle();
-
-      if (error) throw error;
-
+      const data = await api.getSectionBackground('about');
       if (data) {
         setBackgroundImage(data.image_url || '');
         setBackgroundOpacity(parseFloat(data.opacity) || 0.1);
       }
     } catch (error) {
       console.error('Error fetching about background:', error);
-    }
-  };
-
-  const fetchUITexts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', ['about_title', 'about_subtitle', 'about_content']);
-
-      if (error) throw error;
-
-      const textsObj: any = {};
-      data?.forEach((setting) => {
-        if (setting.key === 'about_title') textsObj.title = setting.value;
-        else if (setting.key === 'about_subtitle') textsObj.subtitle = setting.value;
-        else if (setting.key === 'about_content') textsObj.content = setting.value;
-      });
-
-      setUiTexts(prev => ({ ...prev, ...textsObj }));
-    } catch (error) {
-      console.error('Error fetching UI texts:', error);
-    }
-  };
-
-  const fetchAboutSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', ['about_image', 'about_features']);
-
-      if (error) throw error;
-
-      data?.forEach((setting) => {
-        if (setting.key === 'about_image') {
-          setAboutImage(setting.value);
-        } else if (setting.key === 'about_features') {
-          if (Array.isArray(setting.value)) {
-            setFeatures(setting.value);
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error fetching about settings:', error);
     }
   };
 

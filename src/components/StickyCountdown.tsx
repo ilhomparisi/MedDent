@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { useConfiguration } from '../contexts/ConfigurationContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { translations } from '../lib/translations';
 
@@ -10,32 +10,26 @@ interface StickyCountdownProps {
 
 export default function StickyCountdown({ onBookClick, hideCountdown = false }: StickyCountdownProps) {
   const { language } = useLanguage();
+  const { getConfig } = useConfiguration();
   const t = translations[language];
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const [scrollY, setScrollY] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-  const [offerHours, setOfferHours] = useState(24);
   const [countdownStart] = useState<number>(Date.now());
-  const [primaryColor, setPrimaryColor] = useState('#0066CC');
-  const [offerEnabled, setOfferEnabled] = useState(true);
   const [isDarkBackground, setIsDarkBackground] = useState(true);
-  const [expiryText, setExpiryText] = useState('');
-  const [expiryTextSize, setExpiryTextSize] = useState('16');
-  const [expiryTextWeight, setExpiryTextWeight] = useState('700');
-  const [expiryTextAlign, setExpiryTextAlign] = useState('center');
-  const [countdownGlowText, setCountdownGlowText] = useState('24 soat');
-  const [countdownGlowColor, setCountdownGlowColor] = useState('#0066CC');
-  const [countdownGlowIntensity, setCountdownGlowIntensity] = useState('50');
   const [isButtonNearby, setIsButtonNearby] = useState(false);
   const [isManuallyDismissed, setIsManuallyDismissed] = useState(false);
-
-  useEffect(() => {
-    fetchSettings();
-    fetchColors();
-    fetchExpirySettings();
-    fetchCountdownGlowSettings();
-  }, [language]);
-
+  
+  const offerHours = parseInt(getConfig('offer_hours', '24'));
+  const primaryColor = getConfig('primary_color', '#0066CC');
+  const offerEnabled = getConfig('offer_enabled', true);
+  const expiryText = getConfig('countdown_expiry_text', '');
+  const expiryTextSize = getConfig('countdown_expiry_text_size', '16');
+  const expiryTextWeight = getConfig('countdown_expiry_text_weight', '700');
+  const expiryTextAlign = getConfig('countdown_expiry_text_align', 'center');
+  const countdownGlowText = getConfig('countdown_glow_text', '24 soat');
+  const countdownGlowColor = getConfig('countdown_glow_color', '#0066CC');
+  const countdownGlowIntensity = getConfig('countdown_glow_intensity', '50');
 
   useEffect(() => {
     const handleScroll = () => {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowRight, Clock } from 'lucide-react';
-import { supabase, Service } from '../lib/supabase';
+import { api } from '../lib/api';
+import { useConfiguration } from '../contexts/ConfigurationContext';
 import ServiceDetailModal from './ServiceDetailModal';
 import SectionWrapper from './SectionWrapper';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -10,8 +11,29 @@ interface ServicesSectionProps {
   onBookClick: (serviceId?: string) => void;
 }
 
+interface Service {
+  _id?: string;
+  id?: string;
+  title: string;
+  title_uz?: string;
+  title_ru?: string;
+  description: string;
+  description_uz?: string;
+  description_ru?: string;
+  detailed_description?: string;
+  detailed_description_uz?: string;
+  detailed_description_ru?: string;
+  price_from?: number;
+  duration_minutes?: number;
+  icon?: string;
+  image_url?: string;
+  is_active: boolean;
+  display_order?: number;
+}
+
 export default function ServicesSection({ onBookClick }: ServicesSectionProps) {
   const { language } = useLanguage();
+  const { getConfig } = useConfiguration();
   const t = translations[language];
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,37 +41,32 @@ export default function ServicesSection({ onBookClick }: ServicesSectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState('');
   const [backgroundOpacity, setBackgroundOpacity] = useState(0.1);
-  const [uiTexts, setUiTexts] = useState({
-    title: 'Bizning Xizmatlarimiz',
-    subtitle: 'Zamonaviy texnologiya va usullar bilan sizning ehtiyojlaringizga moslashtirilgan to\'liq stomatologik xizmatlar.',
-    price_prefix: 'danboshlab',
-    duration_label: 'Muolaja Vaqti',
-    title_align: 'center',
-    subtitle_align: 'center',
-  });
+  
+  const uiTexts = {
+    title: getConfig('services_title', 'Bizning Xizmatlarimiz'),
+    subtitle: getConfig('services_subtitle', 'Zamonaviy texnologiya va usullar bilan sizning ehtiyojlaringizga moslashtirilgan to\'liq stomatologik xizmatlar.'),
+    price_prefix: getConfig('services_price_prefix', 'dan'),
+    duration_label: getConfig('services_duration_label', 'Muolaja Vaqti'),
+    title_align: getConfig('services_title_align', 'center'),
+    subtitle_align: getConfig('services_subtitle_align', 'center'),
+  };
 
   useEffect(() => {
     fetchServices();
     fetchBackground();
-    fetchUITexts();
   }, [language]);
 
   const fetchServices = async () => {
     try {
-      const { data, error } = await supabase
-        .from('services')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order');
-
-      if (error) throw error;
-
-      const servicesWithLang = data?.map(service => ({
+      const data = await api.getServices(true);
+      
+      const servicesWithLang = data.map((service: any) => ({
         ...service,
+        id: service._id || service.id,
         title: language === 'ru' && service.title_ru ? service.title_ru : service.title_uz || service.title,
         description: language === 'ru' && service.description_ru ? service.description_ru : service.description_uz || service.description,
         detailed_description: language === 'ru' && service.detailed_description_ru ? service.detailed_description_ru : service.detailed_description_uz || service.detailed_description,
-      })) || [];
+      }));
 
       setServices(servicesWithLang);
     } catch (error) {
@@ -61,45 +78,13 @@ export default function ServicesSection({ onBookClick }: ServicesSectionProps) {
 
   const fetchBackground = async () => {
     try {
-      const { data, error } = await supabase
-        .from('section_backgrounds')
-        .select('image_url, opacity')
-        .eq('section_name', 'services')
-        .maybeSingle();
-
-      if (error) throw error;
-
+      const data = await api.getSectionBackground('services');
       if (data) {
         setBackgroundImage(data.image_url || '');
         setBackgroundOpacity(parseFloat(data.opacity) || 0.1);
       }
     } catch (error) {
       console.error('Error fetching services background:', error);
-    }
-  };
-
-  const fetchUITexts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', ['services_title', 'services_subtitle', 'services_price_prefix', 'services_duration_label', 'services_title_align', 'services_subtitle_align']);
-
-      if (error) throw error;
-
-      const textsObj: any = {};
-      data?.forEach((setting) => {
-        if (setting.key === 'services_title') textsObj.title = setting.value;
-        else if (setting.key === 'services_subtitle') textsObj.subtitle = setting.value;
-        else if (setting.key === 'services_price_prefix') textsObj.price_prefix = setting.value;
-        else if (setting.key === 'services_duration_label') textsObj.duration_label = setting.value;
-        else if (setting.key === 'services_title_align') textsObj.title_align = setting.value;
-        else if (setting.key === 'services_subtitle_align') textsObj.subtitle_align = setting.value;
-      });
-
-      setUiTexts(prev => ({ ...prev, ...textsObj }));
-    } catch (error) {
-      console.error('Error fetching UI texts:', error);
     }
   };
 

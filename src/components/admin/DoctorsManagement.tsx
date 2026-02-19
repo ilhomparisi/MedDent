@@ -1,7 +1,28 @@
 import { useState, useEffect } from 'react';
-import { supabase, Doctor } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { uploadDoctorImage, deleteDoctorImage } from '../../lib/doctorImageUpload';
 import { Plus, Edit, Trash2, Save, X, Upload, Image as ImageIcon } from 'lucide-react';
+
+interface Doctor {
+  _id?: string;
+  id?: string;
+  name: string;
+  name_uz?: string;
+  name_ru?: string;
+  specialty: string;
+  specialty_uz?: string;
+  specialty_ru?: string;
+  bio?: string;
+  bio_uz?: string;
+  bio_ru?: string;
+  years_experience: number;
+  education?: string;
+  education_uz?: string;
+  education_ru?: string;
+  image_url?: string | null;
+  is_active: boolean;
+  display_order?: number;
+}
 
 export default function DoctorsManagement() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -39,13 +60,8 @@ export default function DoctorsManagement() {
 
   const fetchDoctors = async () => {
     try {
-      const { data, error } = await supabase
-        .from('doctors')
-        .select('*')
-        .order('display_order');
-
-      if (error) throw error;
-      setDoctors(data || []);
+      const data = await api.getDoctors(false);
+      setDoctors(data.map((d: any) => ({ ...d, id: d._id || d.id })));
     } catch (error) {
       console.error('Error fetching doctors:', error);
       setMessage('Shifokorlarni yuklashda xatolik yuz berdi');
@@ -79,19 +95,10 @@ export default function DoctorsManagement() {
 
     try {
       if (editingDoctor) {
-        const { error } = await supabase
-          .from('doctors')
-          .update(formData)
-          .eq('id', editingDoctor.id);
-
-        if (error) throw error;
+        await api.updateDoctor(editingDoctor.id!, formData);
         setMessage('Shifokor muvaffaqiyatli yangilandi!');
       } else {
-        const { error } = await supabase
-          .from('doctors')
-          .insert([formData]);
-
-        if (error) throw error;
+        await api.createDoctor(formData);
         setMessage('Shifokor muvaffaqiyatli qo\'shildi!');
       }
 
@@ -137,12 +144,7 @@ export default function DoctorsManagement() {
         await deleteDoctorImage(doctor.image_url);
       }
 
-      const { error } = await supabase
-        .from('doctors')
-        .delete()
-        .eq('id', doctor.id);
-
-      if (error) throw error;
+      await api.deleteDoctor(doctor.id!);
 
       setMessage('Shifokor muvaffaqiyatli o\'chirildi!');
       fetchDoctors();

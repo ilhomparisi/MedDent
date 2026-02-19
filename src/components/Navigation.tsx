@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Menu, X } from 'lucide-react';
 import { translations } from '../lib/translations';
-import { supabase } from '../lib/supabase';
+import { useConfiguration } from '../contexts/ConfigurationContext';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface NavigationProps {
@@ -11,8 +11,9 @@ interface NavigationProps {
 export default function Navigation({ onBookClick }: NavigationProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [logoUrl, setLogoUrl] = useState('/image.png');
   const { language, setLanguage } = useLanguage();
+  const { getConfig } = useConfiguration();
+  const logoUrl = getConfig('site_logo', '/image.png');
 
   const t = translations[language];
 
@@ -24,29 +25,6 @@ export default function Navigation({ onBookClick }: NavigationProps) {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  useEffect(() => {
-    fetchLogo();
-  }, []);
-
-  const fetchLogo = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'site_logo')
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data && data.value) {
-        const cacheBuster = `?t=${Date.now()}`;
-        setLogoUrl(data.value + cacheBuster);
-      }
-    } catch (error) {
-      console.error('Error fetching logo:', error);
-    }
-  };
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);

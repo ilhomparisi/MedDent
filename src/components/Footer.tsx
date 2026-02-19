@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Mail, Phone, MapPin, Facebook, Instagram, Send, Clock } from 'lucide-react';
 import { translations } from '../lib/translations';
-import { supabase } from '../lib/supabase';
+import { useConfiguration } from '../contexts/ConfigurationContext';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface FooterProps {
@@ -23,105 +23,38 @@ interface Settings {
 
 export default function Footer({ onBookClick, onOpenConsultation }: FooterProps) {
   const { language } = useLanguage();
+  const { getConfig } = useConfiguration();
   const t = translations[language];
 
-  const [settings, setSettings] = useState<Settings>({
-    contact_phone: '+998 90 123 45 67',
-    contact_email: 'info@dentalcare.uz',
-    contact_address: '123 Amir Temur Street, Tashkent, Uzbekistan',
-    working_hours_weekday: 'Dushanba - Juma: 9:00 - 20:00',
-    working_hours_saturday: 'Shanba: 10:00 - 18:00',
-    working_hours_sunday: 'Yakshanba: Yopiq',
-    social_facebook: 'https://facebook.com',
-    social_instagram: 'https://instagram.com',
-    social_telegram: 'https://t.me',
-  });
-  const [logoUrl, setLogoUrl] = useState('/image.png');
-  const [uiTexts, setUiTexts] = useState({
-    description: translations.uz.footer.description,
-    quick_links: translations.uz.footer.quickLinks,
-    our_services: translations.uz.footer.ourServices,
-    our_doctors: translations.uz.footer.ourDoctors,
-    patient_reviews: translations.uz.footer.patientReviews,
-    book_appointment: translations.uz.footer.bookAppointment,
-    contact_us: translations.uz.footer.contactUs,
-    working_hours: translations.uz.footer.workingHours,
-    emergency: translations.uz.footer.emergency,
-    emergency_text: translations.uz.footer.emergencyText,
-    copyright: translations.uz.footer.copyright,
-    privacy: translations.uz.footer.privacy,
-    terms: translations.uz.footer.terms,
-    cookies: translations.uz.footer.cookies,
-  });
-
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  useEffect(() => {
-    fetchUITexts();
-  }, [language]);
-
-  const fetchSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', [
-          'contact_phone',
-          'contact_email',
-          'contact_address',
-          'working_hours_weekday',
-          'working_hours_saturday',
-          'working_hours_sunday',
-          'social_facebook',
-          'social_instagram',
-          'social_telegram',
-          'site_logo',
-        ]);
-
-      if (error) throw error;
-
-      const settingsObj: any = {};
-      data?.forEach((setting) => {
-        if (setting.key === 'site_logo' && setting.value) {
-          const cacheBuster = `?t=${Date.now()}`;
-          setLogoUrl(setting.value + cacheBuster);
-        } else {
-          settingsObj[setting.key] = setting.value;
-        }
-      });
-
-      setSettings((prev) => ({ ...prev, ...settingsObj }));
-    } catch (error) {
-      console.error('Error fetching settings:', error);
-    }
+  const settings: Settings = {
+    contact_phone: getConfig('contact_phone', '+998 90 123 45 67'),
+    contact_email: getConfig('contact_email', 'info@dentalcare.uz'),
+    contact_address: getConfig('contact_address', '123 Amir Temur Street, Tashkent, Uzbekistan'),
+    working_hours_weekday: getConfig('working_hours_weekday', 'Dushanba - Juma: 9:00 - 20:00'),
+    working_hours_saturday: getConfig('working_hours_saturday', 'Shanba: 10:00 - 18:00'),
+    working_hours_sunday: getConfig('working_hours_sunday', 'Yakshanba: Yopiq'),
+    social_facebook: getConfig('social_facebook', 'https://facebook.com'),
+    social_instagram: getConfig('social_instagram', 'https://instagram.com'),
+    social_telegram: getConfig('social_telegram', 'https://t.me'),
   };
-
-  const fetchUITexts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('ui_texts')
-        .select('key, value, value_uz, value_ru')
-        .eq('section', 'footer');
-
-      if (error) throw error;
-
-      const textsObj: any = {};
-      data?.forEach((text) => {
-        if (language === 'ru' && text.value_ru) {
-          textsObj[text.key] = text.value_ru;
-        } else if (text.value_uz) {
-          textsObj[text.key] = text.value_uz;
-        } else {
-          textsObj[text.key] = text.value;
-        }
-      });
-
-      setUiTexts(prev => ({ ...prev, ...textsObj }));
-    } catch (error) {
-      console.error('Error fetching UI texts:', error);
-    }
+  
+  const logoUrl = getConfig('site_logo', '/image.png');
+  
+  const uiTexts = {
+    description: t.footer.description,
+    quick_links: t.footer.quickLinks,
+    our_services: t.footer.ourServices,
+    our_doctors: t.footer.ourDoctors,
+    patient_reviews: t.footer.patientReviews,
+    book_appointment: t.footer.bookAppointment,
+    contact_us: t.footer.contactUs,
+    working_hours: t.footer.workingHours,
+    emergency: t.footer.emergency,
+    emergency_text: t.footer.emergencyText,
+    copyright: t.footer.copyright,
+    privacy: t.footer.privacy,
+    terms: t.footer.terms,
+    cookies: t.footer.cookies,
   };
 
   const scrollToTop = () => {

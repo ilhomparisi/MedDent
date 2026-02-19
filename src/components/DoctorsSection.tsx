@@ -1,8 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Award } from 'lucide-react';
-import { supabase, Doctor } from '../lib/supabase';
+import { api } from '../lib/api';
+import { useConfiguration } from '../contexts/ConfigurationContext';
 import { translations } from '../lib/translations';
 import { useLanguage } from '../contexts/LanguageContext';
+
+interface Doctor {
+  _id?: string;
+  id?: string;
+  name: string;
+  name_uz?: string;
+  name_ru?: string;
+  specialty: string;
+  specialty_uz?: string;
+  specialty_ru?: string;
+  image_url: string | null;
+  bio: string | null;
+  bio_uz?: string;
+  bio_ru?: string;
+  years_experience: number;
+  education: string | null;
+  is_active: boolean;
+  display_order?: number;
+}
 
 export default function DoctorsSection() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -12,36 +32,26 @@ export default function DoctorsSection() {
   const [canScrollRight, setCanScrollRight] = useState(true);
   const autoScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { language } = useLanguage();
+  const { getConfig } = useConfiguration();
 
   const t = translations[language];
 
-  const [uiTexts, setUiTexts] = useState({
-    title_align: 'center',
-    subtitle_align: 'center',
-    title_size: '36',
-    subtitle_size: '18',
-  });
-  const [gradientSettings, setGradientSettings] = useState({
-    opacity: '0.25',
-    width: '90',
-    height: '85',
-    blur: '60',
-  });
+  const uiTexts = {
+    title_align: getConfig('doctors_title_align', 'center'),
+    subtitle_align: getConfig('doctors_subtitle_align', 'center'),
+    title_size: getConfig('doctors_title_size', '36'),
+    subtitle_size: getConfig('doctors_subtitle_size', '18'),
+  };
+  
+  const gradientSettings = {
+    opacity: getConfig('doctors_gradient_opacity', '0.25'),
+    width: getConfig('doctors_gradient_width', '90'),
+    height: getConfig('doctors_gradient_height', '85'),
+    blur: getConfig('doctors_gradient_blur', '60'),
+  };
 
   useEffect(() => {
     fetchDoctors();
-    fetchUITexts();
-    fetchGradientSettings();
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchUITexts();
-        fetchGradientSettings();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [language]);
 
 
@@ -103,75 +113,22 @@ export default function DoctorsSection() {
 
   const fetchDoctors = async () => {
     try {
-      const { data, error } = await supabase
-        .from('doctors')
-        .select('*')
-        .eq('is_active', true);
-
-      if (error) throw error;
-
-      const doctorsWithLang = data?.map(doctor => ({
+      const data = await api.getDoctors();
+      
+      const doctorsWithLang = data.map((doctor: any) => ({
         ...doctor,
+        id: doctor._id || doctor.id,
         name: language === 'ru' && doctor.name_ru ? doctor.name_ru : doctor.name_uz || doctor.name,
         specialty: language === 'ru' && doctor.specialty_ru ? doctor.specialty_ru : doctor.specialty_uz || doctor.specialty,
         bio: language === 'ru' && doctor.bio_ru ? doctor.bio_ru : doctor.bio_uz || doctor.bio,
         education: language === 'ru' && doctor.education_ru ? doctor.education_ru : doctor.education_uz || doctor.education,
-      })) || [];
+      }));
 
       setDoctors(doctorsWithLang);
     } catch (error) {
       console.error('Error fetching doctors:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchUITexts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', [
-          'doctors_title_align', 'doctors_subtitle_align',
-          'doctors_title_size', 'doctors_subtitle_size'
-        ]);
-
-      if (error) throw error;
-
-      const textsObj: any = {};
-      data?.forEach((setting) => {
-        if (setting.key === 'doctors_title_align') textsObj.title_align = setting.value;
-        else if (setting.key === 'doctors_subtitle_align') textsObj.subtitle_align = setting.value;
-        else if (setting.key === 'doctors_title_size') textsObj.title_size = setting.value;
-        else if (setting.key === 'doctors_subtitle_size') textsObj.subtitle_size = setting.value;
-      });
-
-      setUiTexts(prev => ({ ...prev, ...textsObj }));
-    } catch (error) {
-      console.error('Error fetching UI texts:', error);
-    }
-  };
-
-  const fetchGradientSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', ['gradient_opacity', 'gradient_width', 'gradient_height', 'gradient_blur']);
-
-      if (error) throw error;
-
-      const settingsObj: any = {};
-      data?.forEach((setting) => {
-        if (setting.key === 'gradient_opacity') settingsObj.opacity = setting.value;
-        else if (setting.key === 'gradient_width') settingsObj.width = setting.value;
-        else if (setting.key === 'gradient_height') settingsObj.height = setting.value;
-        else if (setting.key === 'gradient_blur') settingsObj.blur = setting.value;
-      });
-
-      setGradientSettings(prev => ({ ...prev, ...settingsObj }));
-    } catch (error) {
-      console.error('Error fetching gradient settings:', error);
     }
   };
 

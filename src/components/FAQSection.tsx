@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Minus } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
+import { useConfiguration } from '../contexts/ConfigurationContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { translations } from '../lib/translations';
 
@@ -18,89 +19,42 @@ interface FAQItem {
 
 export default function FAQSection() {
   const { language } = useLanguage();
+  const { getConfig } = useConfiguration();
   const t = translations[language];
   const [faqItems, setFaqItems] = useState<FAQItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const [primaryColor, setPrimaryColor] = useState('#0066CC');
-  const [faqSettings, setFaqSettings] = useState({
-    title_size: '36',
-    subtitle_size: '18',
-    title_align: 'center',
-    subtitle_align: 'center',
-    question_size: '18',
-    answer_size: '16',
-  });
+  
+  const primaryColor = getConfig('primary_color', '#0066CC');
+  const faqSettings = {
+    title_size: getConfig('faq_title_size', '36'),
+    subtitle_size: getConfig('faq_subtitle_size', '18'),
+    title_align: getConfig('faq_title_align', 'center'),
+    subtitle_align: getConfig('faq_subtitle_align', 'center'),
+    question_size: getConfig('faq_question_size', '18'),
+    answer_size: getConfig('faq_answer_size', '16'),
+  };
 
   useEffect(() => {
     fetchFAQItems();
-    fetchPrimaryColor();
-    fetchFAQSettings();
   }, [language]);
 
   const fetchFAQItems = async () => {
     try {
-      const { data, error } = await supabase
-        .from('faq_items')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true});
-
-      if (error) throw error;
-
-      const faqItemsWithLang = data?.map(item => ({
+      const data = await api.getFaqs();
+      
+      const faqItemsWithLang = data.map((item: any) => ({
         ...item,
+        id: item._id || item.id,
         question: language === 'ru' && item.question_ru ? item.question_ru : item.question_uz || item.question,
         answer: language === 'ru' && item.answer_ru ? item.answer_ru : item.answer_uz || item.answer,
-      })) || [];
+      }));
 
       setFaqItems(faqItemsWithLang);
     } catch (error) {
       console.error('Error fetching FAQ items:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchPrimaryColor = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'primary_color')
-        .maybeSingle();
-
-      if (error) throw error;
-      if (data?.value) {
-        setPrimaryColor(data.value);
-      }
-    } catch (error) {
-      console.error('Error fetching primary color:', error);
-    }
-  };
-
-  const fetchFAQSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', [
-          'faq_title_size', 'faq_subtitle_size',
-          'faq_title_align', 'faq_subtitle_align',
-          'faq_question_size', 'faq_answer_size'
-        ]);
-
-      if (error) throw error;
-
-      const settingsObj: any = {};
-      data?.forEach((setting) => {
-        const key = setting.key.replace('faq_', '');
-        settingsObj[key] = setting.value;
-      });
-
-      setFaqSettings(prev => ({ ...prev, ...settingsObj }));
-    } catch (error) {
-      console.error('Error fetching FAQ settings:', error);
     }
   };
 

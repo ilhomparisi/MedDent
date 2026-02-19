@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 
 const SOURCE_STORAGE_KEY = 'campaign_source';
 const SOURCE_EXPIRY_DAYS = 30;
@@ -26,27 +26,26 @@ export function useSourceTracking() {
 }
 
 async function validateAndStoreSource(code: string) {
-  const { data } = await supabase
-    .from('campaign_links')
-    .select('id, unique_code, is_active, expiry_date')
-    .eq('unique_code', code)
-    .eq('is_active', true)
-    .maybeSingle();
+  try {
+    const { data } = await api.getCampaignByCode(code);
+    
+    if (data && data.is_active) {
+      const isExpired = data.expiry_date && new Date(data.expiry_date) < new Date();
+      if (!isExpired) {
+        const stored: StoredSource = {
+          code: code,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(SOURCE_STORAGE_KEY, JSON.stringify(stored));
 
-  if (data) {
-    const isExpired = data.expiry_date && new Date(data.expiry_date) < new Date();
-    if (!isExpired) {
-      const stored: StoredSource = {
-        code: code,
-        timestamp: Date.now()
-      };
-      localStorage.setItem(SOURCE_STORAGE_KEY, JSON.stringify(stored));
+        await api.incrementCampaignClick(code);
 
-      await supabase.rpc('increment_campaign_click', { campaign_code: code });
-
-      const newUrl = window.location.pathname + window.location.hash;
-      window.history.replaceState({}, '', newUrl);
+        const newUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, '', newUrl);
+      }
     }
+  } catch (error) {
+    console.error('Error validating source:', error);
   }
 }
 

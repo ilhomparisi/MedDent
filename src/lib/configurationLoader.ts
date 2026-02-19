@@ -1,114 +1,37 @@
-import { supabase } from './supabase';
+import { api } from './api';
 
 export interface SiteConfiguration {
   [key: string]: any;
 }
 
-export interface ConfigurationCache {
-  data: SiteConfiguration;
-  version: number;
-  lastUpdated: string;
-}
-
-let configCache: ConfigurationCache | null = null;
-let cacheExpiry: number = 0;
-const CACHE_TTL = 5 * 60 * 1000;
+let configCache: SiteConfiguration | null = null;
 
 export async function loadConfigurationFromCache(): Promise<SiteConfiguration> {
-  const now = Date.now();
-
-  if (configCache && now < cacheExpiry) {
-    return configCache.data;
+  if (configCache !== null) {
+    return configCache;
   }
 
   try {
-    const { data, error } = await supabase
-      .from('configuration_cache')
-      .select('cache_data, cache_version, last_updated')
-      .limit(1)
-      .maybeSingle();
-
-    if (error) throw error;
-
-    if (data && data.cache_data) {
-      configCache = {
-        data: data.cache_data as SiteConfiguration,
-        version: data.cache_version || 1,
-        lastUpdated: data.last_updated,
-      };
-      cacheExpiry = now + CACHE_TTL;
-      return configCache.data;
-    }
-
-    return await loadConfigurationFromSettings();
+    const { settings } = await api.getAllSettings();
+    configCache = settings;
+    return configCache;
   } catch (error) {
-    console.error('Error loading configuration from cache:', error);
-    return await loadConfigurationFromSettings();
-  }
-}
-
-async function loadConfigurationFromSettings(): Promise<SiteConfiguration> {
-  try {
-    const { data, error } = await supabase
-      .from('site_settings')
-      .select('key, value');
-
-    if (error) throw error;
-
-    const config: SiteConfiguration = {};
-    data?.forEach((setting) => {
-      config[setting.key] = setting.value;
-    });
-
-    return config;
-  } catch (error) {
-    console.error('Error loading configuration from settings:', error);
+    console.error('Error loading configuration:', error);
     return {};
   }
 }
 
+export async function refreshConfigurationCache(): Promise<SiteConfiguration> {
+  configCache = null;
+  return loadConfigurationFromCache();
+}
+
 export function invalidateConfigurationCache(): void {
   configCache = null;
-  cacheExpiry = 0;
 }
 
-export async function refreshConfigurationCache(): Promise<void> {
-  invalidateConfigurationCache();
-  await loadConfigurationFromCache();
-}
-
-export function subscribeToConfigurationChanges(
-  callback: (config: SiteConfiguration) => void
-): () => void {
-  const channel = supabase
-    .channel('configuration-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'site_settings',
-      },
-      async () => {
-        await refreshConfigurationCache();
-        if (configCache) {
-          callback(configCache.data);
-        }
-      }
-    )
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}
-
-export function getConfigValue<T = any>(
-  config: SiteConfiguration,
-  key: string,
-  defaultValue: T
-): T {
-  return config[key] !== undefined ? (config[key] as T) : defaultValue;
+export function getConfigValue<T>(config: SiteConfiguration, key: string, defaultValue: T): T {
+  return config[key] !== undefined ? config[key] : defaultValue;
 }
 
 export function getConfigValues<T extends Record<string, any>>(
@@ -123,4 +46,14 @@ export function getConfigValues<T extends Record<string, any>>(
     }
   });
   return result;
+}
+
+export function subscribeToConfigurationChanges(callback: (config: SiteConfiguration) => void): () => void {
+  // For now, just poll every 30 seconds
+  const intervalId = setInterval(async () => {
+    const newConfig = await refreshConfigurationCache();
+    callback(newConfig);
+  }, 30000);
+
+  return () => clearInterval(intervalId);
 }

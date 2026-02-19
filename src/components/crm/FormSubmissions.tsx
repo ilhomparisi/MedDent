@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { Search, Download, ChevronLeft, ChevronRight, Filter, X, Calendar, FileText, Check, Loader2, FileSpreadsheet, Clock } from 'lucide-react';
 
 interface Submission {
-  id: string;
+  _id?: string;
+  id?: string;
   full_name: string;
   phone: string;
   lives_in_tashkent: string;
@@ -53,84 +54,73 @@ export default function FormSubmissions() {
   }, [page, perPage, search, sourceFilter, statusFilter, dateFrom, dateTo]);
 
   const loadSources = async () => {
-    const { data } = await supabase.from('consultation_forms').select('source');
-    if (data) {
-      const uniqueSources = [...new Set(data.map(d => d.source || 'Direct Visit'))];
-      setSources(uniqueSources.sort());
+    try {
+      const response = await api.getConsultationFormSources();
+      if (response.sources) {
+        setSources(response.sources.sort());
+      }
+    } catch (error) {
+      console.error('Error loading sources:', error);
     }
   };
 
   const loadSubmissions = async () => {
     setLoading(true);
-    let query = supabase
-      .from('consultation_forms')
-      .select('*', { count: 'exact' });
+    try {
+      const response = await api.getConsultationForms({
+        page,
+        perPage,
+        search: search || undefined,
+        sourceFilter: sourceFilter || undefined,
+        statusFilter: statusFilter || undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+      });
 
-    if (search) {
-      query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`);
+      // Convert MongoDB _id to id for compatibility
+      const formattedData = response.data.map((item: any) => ({
+        ...item,
+        id: item._id || item.id,
+      }));
+
+      setSubmissions(formattedData);
+      setTotalCount(response.pagination.totalCount);
+    } catch (error) {
+      console.error('Error loading submissions:', error);
+      setSubmissions([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
     }
-
-    if (sourceFilter) {
-      query = query.eq('source', sourceFilter);
-    }
-
-    if (statusFilter) {
-      query = query.eq('lead_status', statusFilter);
-    }
-
-    if (dateFrom) {
-      query = query.gte('created_at', new Date(dateFrom).toISOString());
-    }
-
-    if (dateTo) {
-      const endDate = new Date(dateTo);
-      endDate.setHours(23, 59, 59, 999);
-      query = query.lte('created_at', endDate.toISOString());
-    }
-
-    const from = (page - 1) * perPage;
-    const to = from + perPage - 1;
-
-    const { data, count, error } = await query
-      .order('created_at', { ascending: false })
-      .range(from, to);
-
-    if (!error) {
-      setSubmissions(data || []);
-      setTotalCount(count || 0);
-    }
-    setLoading(false);
   };
 
   const updateLeadStatus = async (id: string, newStatus: string) => {
     setUpdatingId(id);
-    const { error } = await supabase
-      .from('consultation_forms')
-      .update({ lead_status: newStatus })
-      .eq('id', id);
-
-    if (!error) {
+    try {
+      await api.updateConsultationForm(id, { lead_status: newStatus });
       setSubmissions(prev =>
-        prev.map(s => s.id === id ? { ...s, lead_status: newStatus } : s)
+        prev.map(s => (s.id === id || s._id === id) ? { ...s, lead_status: newStatus } : s)
       );
+    } catch (error) {
+      console.error('Error updating lead status:', error);
+    } finally {
+      setUpdatingId(null);
     }
-    setUpdatingId(null);
   };
 
   const updateNotes = async (id: string, newNotes: string) => {
     setUpdatingId(id);
-    const { error } = await supabase
-      .from('consultation_forms')
-      .update({ notes: newNotes })
-      .eq('id', id);
-
-    if (!error) {
+    try {
+      await api.updateConsultationForm(id, { notes: newNotes });
       setSubmissions(prev =>
-        prev.map(s => s.id === id ? { ...s, notes: newNotes } : s)
+        prev.map(s => (s.id === id || s._id === id) ? { ...s, notes: newNotes } : s)
       );
+    } catch (error) {
+      console.error('Error updating notes:', error);
+    } finally {
+      setUpdatingId(null);
+      setEditingNotesId(null);
     }
-    setUpdatingId(null);
-    setEditingNotesId(null);
   };
 
   const startEditingNotes = (submission: Submission) => {
@@ -149,28 +139,24 @@ export default function FormSubmissions() {
   };
 
   const exportToCSV = async () => {
-    let query = supabase.from('consultation_forms').select('*');
+    try {
+      // Fetch all data for export (use large perPage)
+      const response = await api.getConsultationForms({
+        page: 1,
+        perPage: 10000, // Large number to get all records
+        search: search || undefined,
+        sourceFilter: sourceFilter || undefined,
+        statusFilter: statusFilter || undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+      });
 
-    if (search) {
-      query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`);
-    }
-    if (sourceFilter) {
-      query = query.eq('source', sourceFilter);
-    }
-    if (statusFilter) {
-      query = query.eq('lead_status', statusFilter);
-    }
-    if (dateFrom) {
-      query = query.gte('created_at', new Date(dateFrom).toISOString());
-    }
-    if (dateTo) {
-      const endDate = new Date(dateTo);
-      endDate.setHours(23, 59, 59, 999);
-      query = query.lte('created_at', endDate.toISOString());
-    }
+      const data = response.data.map((item: any) => ({
+        ...item,
+        id: item._id || item.id,
+      }));
 
-    const { data } = await query.order('created_at', { ascending: false });
-    if (!data || data.length === 0) return;
+      if (!data || data.length === 0) return;
 
     const headers = ['Sana', 'Ism', 'Telefon', 'Holat', 'Izohlar', 'Vaqt (soniya)', 'Toshkentda yashaydi', 'Oxirgi tashrif', 'Muammolar', 'Oldingi klinika tajribasi', 'Yo\'q tishlar', 'Qo\'ng\'iroq vaqti', 'Manba'];
     const rows = data.map(s => [
@@ -201,28 +187,24 @@ export default function FormSubmissions() {
   };
 
   const exportToExcel = async () => {
-    let query = supabase.from('consultation_forms').select('*');
+    try {
+      // Fetch all data for export (use large perPage)
+      const response = await api.getConsultationForms({
+        page: 1,
+        perPage: 10000, // Large number to get all records
+        search: search || undefined,
+        sourceFilter: sourceFilter || undefined,
+        statusFilter: statusFilter || undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+      });
 
-    if (search) {
-      query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`);
-    }
-    if (sourceFilter) {
-      query = query.eq('source', sourceFilter);
-    }
-    if (statusFilter) {
-      query = query.eq('lead_status', statusFilter);
-    }
-    if (dateFrom) {
-      query = query.gte('created_at', new Date(dateFrom).toISOString());
-    }
-    if (dateTo) {
-      const endDate = new Date(dateTo);
-      endDate.setHours(23, 59, 59, 999);
-      query = query.lte('created_at', endDate.toISOString());
-    }
+      const data = response.data.map((item: any) => ({
+        ...item,
+        id: item._id || item.id,
+      }));
 
-    const { data } = await query.order('created_at', { ascending: false });
-    if (!data || data.length === 0) return;
+      if (!data || data.length === 0) return;
 
     const headers = ['Sana', 'Ism', 'Telefon', 'Holat', 'Izohlar', 'Vaqt (soniya)', 'Toshkentda yashaydi', 'Oxirgi tashrif', 'Muammolar', 'Oldingi klinika tajribasi', 'Yo\'q tishlar', 'Qo\'ng\'iroq vaqti', 'Manba'];
     const rows = data.map(s => [
@@ -286,11 +268,15 @@ export default function FormSubmissions() {
   </Worksheet>
 </Workbook>`;
 
-    const blob = new Blob([xmlContent], { type: 'application/vnd.ms-excel' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `arizalar_${new Date().toISOString().split('T')[0]}.xls`;
-    link.click();
+      const blob = new Blob([xmlContent], { type: 'application/vnd.ms-excel' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `arizalar_${new Date().toISOString().split('T')[0]}.xls`;
+      link.click();
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      alert('Eksport qilishda xatolik yuz berdi');
+    }
   };
 
   const formatDate = (dateStr: string) => {
