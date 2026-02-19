@@ -8,7 +8,7 @@ ARG VITE_API_URL
 ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
-# Stage 2: backend + serve frontend on port 3000
+# Stage 2: backend + serve frontend (listen port from PORT env, default 3000)
 FROM node:20-alpine
 WORKDIR /app
 COPY backend/package*.json ./
@@ -16,5 +16,6 @@ RUN npm install --omit=dev
 COPY backend/ .
 COPY --from=frontend-build /app/dist ./dist
 RUN mkdir -p uploads
+ENV PORT=3000
 EXPOSE 3000
 CMD ["node", "src/server.js"]

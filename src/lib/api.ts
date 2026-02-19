@@ -1,4 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// Use VITE_API_URL if set (build-time), otherwise same-origin /api so it works on any domain
+const API_BASE_URL = (typeof import.meta.env.VITE_API_URL === 'string' && import.meta.env.VITE_API_URL.trim() !== '')
+  ? import.meta.env.VITE_API_URL.trim().replace(/\/+$/, '')
+  : '/api';
 
 interface ApiError {
   error: string;
