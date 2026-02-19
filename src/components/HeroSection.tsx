@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus } from 'lucide-react';
 import { translations } from '../lib/translations';
-import { supabase } from '../lib/supabase';
+import { useConfiguration } from '../contexts/ConfigurationContext';
 import SectionWrapper from './SectionWrapper';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -96,6 +96,7 @@ const HERO_BUTTON_CONFIG = {
 
 export default function HeroSection({ onBookClick }: HeroSectionProps) {
   const { language } = useLanguage();
+  const { getConfig } = useConfiguration();
   const t = translations[language];
 
   const [settings, setSettings] = useState<HeroSettings>({
@@ -106,51 +107,53 @@ export default function HeroSection({ onBookClick }: HeroSectionProps) {
     hero_cta_primary: translations.uz.hero.ctaPrimary,
     hero_cta_secondary: translations.uz.hero.ctaSecondary,
     hero_badge_text: translations.uz.hero.badge,
-    hero_badge_text_align: 'center',
-    hero_badge_text_size: '14',
-    hero_badge_text_size_mobile: '13',
-    hero_badge_font_family: 'Inter, system-ui, -apple-system, sans-serif',
-    offer_enabled: true,
-    offer_hours: 24,
-    hero_title_align: 'center',
-    hero_subtitle_align: 'center',
-    hero_button_align: 'center',
-    hero_title_size: '48',
-    hero_title_line1_size: '48',
-    hero_title_line2_size: '64',
-    hero_title_line1_size_mobile: '29.5',
-    hero_title_line2_size_mobile: '34.5',
-    hero_subtitle_size: '18',
-    hero_subtitle_size_mobile: '13.5',
-    hero_button_text_size: '18',
-    hero_button_text_size_mobile: '16',
-    hero_count_up_enabled: true,
-    hero_count_up_number: 60,
+    hero_badge_text_align: getConfig('hero_badge_text_align', 'center'),
+    hero_badge_text_size: getConfig('hero_badge_text_size', '14'),
+    hero_badge_text_size_mobile: getConfig('hero_badge_text_size_mobile', '13'),
+    hero_badge_font_family: getConfig('hero_badge_font_family', 'Inter, system-ui, -apple-system, sans-serif'),
+    offer_enabled: getConfig('offer_enabled', true),
+    offer_hours: parseFloat(getConfig('offer_hours', '24')),
+    hero_title_align: getConfig('hero_title_align', 'center'),
+    hero_subtitle_align: getConfig('hero_subtitle_align', 'center'),
+    hero_button_align: getConfig('hero_button_align', 'center'),
+    hero_title_size: getConfig('hero_title_size', '48'),
+    hero_title_line1_size: getConfig('hero_title_line1_size', '48'),
+    hero_title_line2_size: getConfig('hero_title_line2_size', '64'),
+    hero_title_line1_size_mobile: getConfig('hero_title_line1_size_mobile', '29.5'),
+    hero_title_line2_size_mobile: getConfig('hero_title_line2_size_mobile', '34.5'),
+    hero_subtitle_size: getConfig('hero_subtitle_size', '18'),
+    hero_subtitle_size_mobile: getConfig('hero_subtitle_size_mobile', '13.5'),
+    hero_button_text_size: getConfig('hero_button_text_size', '18'),
+    hero_button_text_size_mobile: getConfig('hero_button_text_size_mobile', '16'),
+    hero_count_up_enabled: getConfig('hero_count_up_enabled', true),
+    hero_count_up_number: parseFloat(getConfig('hero_count_up_number', '60')),
     hero_count_up_text: translations.uz.hero.countUpText,
-    hero_count_up_duration: 2000,
-    hero_count_up_duration_mobile: 1500,
-    hero_count_up_text_size: 18,
-    hero_count_up_text_size_mobile: 16,
-    hero_button_height_mobile: 50,
-    hero_button_width_mobile: 'auto',
-    text_glow_color: '#ffffff',
-    text_glow_intensity: '50',
-    hero_spacing_above_badge: HERO_SPACING_CONFIG.desktop.aboveBadge,
-    hero_spacing_above_badge_mobile: HERO_SPACING_CONFIG.mobile.aboveBadge,
-    hero_spacing_badge_title: HERO_SPACING_CONFIG.desktop.badgeToTitle,
-    hero_spacing_badge_title_mobile: HERO_SPACING_CONFIG.mobile.badgeToTitle,
-    hero_spacing_title_subtitle: HERO_SPACING_CONFIG.desktop.titleToSubtitle,
-    hero_spacing_title_subtitle_mobile: HERO_SPACING_CONFIG.mobile.titleToSubtitle,
-    hero_spacing_subtitle_button: HERO_SPACING_CONFIG.desktop.subtitleToButton,
-    hero_spacing_subtitle_button_mobile: HERO_SPACING_CONFIG.mobile.subtitleToButton,
-    hero_spacing_button_countup: HERO_SPACING_CONFIG.desktop.buttonToCountup,
-    hero_spacing_button_countup_mobile: HERO_SPACING_CONFIG.mobile.buttonToCountup,
+    hero_count_up_duration: parseFloat(getConfig('hero_count_up_duration', '2000')),
+    hero_count_up_duration_mobile: parseFloat(getConfig('hero_count_up_duration_mobile', '1500')),
+    hero_count_up_text_size: parseFloat(getConfig('hero_count_up_text_size', '18')),
+    hero_count_up_text_size_mobile: parseFloat(getConfig('hero_count_up_text_size_mobile', '16')),
+    hero_button_height: parseFloat(getConfig('hero_button_height', '64')),
+    hero_button_height_mobile: parseFloat(getConfig('hero_button_height_mobile', '50')),
+    hero_button_width: getConfig('hero_button_width', 'auto'),
+    hero_button_width_mobile: getConfig('hero_button_width_mobile', 'auto'),
+    text_glow_color: textGlowColor,
+    text_glow_intensity: textGlowIntensity,
+    hero_spacing_above_badge: parseFloat(getConfig('hero_spacing_above_badge', String(HERO_SPACING_CONFIG.desktop.aboveBadge))),
+    hero_spacing_above_badge_mobile: parseFloat(getConfig('hero_spacing_above_badge_mobile', String(HERO_SPACING_CONFIG.mobile.aboveBadge))),
+    hero_spacing_badge_title: parseFloat(getConfig('hero_spacing_badge_title', String(HERO_SPACING_CONFIG.desktop.badgeToTitle))),
+    hero_spacing_badge_title_mobile: parseFloat(getConfig('hero_spacing_badge_title_mobile', String(HERO_SPACING_CONFIG.mobile.badgeToTitle))),
+    hero_spacing_title_subtitle: parseFloat(getConfig('hero_spacing_title_subtitle', String(HERO_SPACING_CONFIG.desktop.titleToSubtitle))),
+    hero_spacing_title_subtitle_mobile: parseFloat(getConfig('hero_spacing_title_subtitle_mobile', String(HERO_SPACING_CONFIG.mobile.titleToSubtitle))),
+    hero_spacing_subtitle_button: parseFloat(getConfig('hero_spacing_subtitle_button', String(HERO_SPACING_CONFIG.desktop.subtitleToButton))),
+    hero_spacing_subtitle_button_mobile: parseFloat(getConfig('hero_spacing_subtitle_button_mobile', String(HERO_SPACING_CONFIG.mobile.subtitleToButton))),
+    hero_spacing_button_countup: parseFloat(getConfig('hero_spacing_button_countup', String(HERO_SPACING_CONFIG.desktop.buttonToCountup))),
+    hero_spacing_button_countup_mobile: parseFloat(getConfig('hero_spacing_button_countup_mobile', String(HERO_SPACING_CONFIG.mobile.buttonToCountup))),
+    hero_subtitle_uz: getConfig('hero_subtitle_uz', ''),
+    hero_subtitle_ru: getConfig('hero_subtitle_ru', ''),
+    hero_subtitle_white_words_uz: getConfig('hero_subtitle_white_words_uz', ''),
+    hero_subtitle_white_words_ru: getConfig('hero_subtitle_white_words_ru', ''),
   });
-  const [cardImage, setCardImage] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#2563eb');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [heroImageOuterWidth, setHeroImageOuterWidth] = useState(236);
-  const [heroImageOuterHeight, setHeroImageOuterHeight] = useState(436);
 
   useEffect(() => {
     const handleResize = () => {
@@ -160,23 +163,19 @@ export default function HeroSection({ onBookClick }: HeroSectionProps) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   const [countUpValue, setCountUpValue] = useState(0);
-  const [toothIconColor, setToothIconColor] = useState('#2563eb');
-  const [toothIconGlowColor, setToothIconGlowColor] = useState('#2563eb');
-  const [toothIconGlowIntensity, setToothIconGlowIntensity] = useState('50');
-  const [textGlowColor, setTextGlowColor] = useState('#ffffff');
-  const [textGlowIntensity, setTextGlowIntensity] = useState('50');
-  const [toothIconUrl, setToothIconUrl] = useState('');
-  const [ovalFrameBorderColor, setOvalFrameBorderColor] = useState('#2563eb');
-
-  useEffect(() => {
-    fetchSettings();
-    fetchCardImage();
-    fetchPrimaryColor();
-    fetchBadgeGlowSettings();
-    fetchToothIcon();
-    fetchOvalFrameBorderColor();
-    fetchHeroImageDimensions();
-  }, []);
+  
+  // Get all settings from ConfigurationContext
+  const cardImage = getConfig('hero_card_image', '');
+  const primaryColor = getConfig('primary_color', '#2563eb');
+  const heroImageOuterWidth = parseFloat(getConfig('hero_image_outer_width', '236'));
+  const heroImageOuterHeight = parseFloat(getConfig('hero_image_outer_height', '436'));
+  const toothIconColor = getConfig('tooth_icon_color', '#2563eb');
+  const toothIconGlowColor = getConfig('tooth_icon_glow_color', toothIconColor);
+  const toothIconGlowIntensity = getConfig('tooth_icon_glow_intensity', getConfig('hero_badge_glow_intensity', '50'));
+  const textGlowColor = getConfig('text_glow_color', '#ffffff');
+  const textGlowIntensity = getConfig('text_glow_intensity', getConfig('hero_badge_glow_intensity', '50'));
+  const toothIconUrl = getConfig('tooth_icon_url', '');
+  const ovalFrameBorderColor = getConfig('hero_oval_frame_border_color', '#2563eb');
 
   useEffect(() => {
     setSettings(prev => ({
@@ -218,229 +217,6 @@ export default function HeroSection({ onBookClick }: HeroSectionProps) {
 
     return () => clearInterval(timer);
   }, [settings.hero_count_up_enabled, settings.hero_count_up_number, settings.hero_count_up_duration, settings.hero_count_up_duration_mobile]);
-
-
-  const fetchSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', [
-          'hero_title',
-          'hero_title_line1',
-          'hero_title_line2',
-          'hero_subtitle',
-          'hero_cta_primary',
-          'hero_cta_secondary',
-          'hero_badge_text',
-          'hero_badge_text_align',
-          'hero_badge_text_size',
-          'hero_badge_text_size_mobile',
-          'hero_badge_font_family',
-          'offer_enabled',
-          'offer_hours',
-          'hero_title_align',
-          'hero_subtitle_align',
-          'hero_button_align',
-          'hero_title_size',
-          'hero_title_line1_size',
-          'hero_title_line2_size',
-          'hero_title_line1_size_mobile',
-          'hero_title_line2_size_mobile',
-          'hero_subtitle_size',
-          'hero_subtitle_size_mobile',
-          'hero_button_text_size',
-          'hero_button_text_size_mobile',
-          'hero_count_up_enabled',
-          'hero_count_up_number',
-          'hero_count_up_text',
-          'hero_count_up_duration',
-          'hero_count_up_duration_mobile',
-          'hero_count_up_text_size',
-          'hero_count_up_text_size_mobile',
-          'hero_button_height',
-          'hero_button_height_mobile',
-          'hero_button_width',
-          'hero_button_width_mobile',
-          'text_glow_color',
-          'text_glow_intensity',
-          'hero_spacing_badge_title',
-          'hero_spacing_badge_title_mobile',
-          'hero_spacing_title_subtitle',
-          'hero_spacing_title_subtitle_mobile',
-          'hero_spacing_subtitle_button',
-          'hero_spacing_subtitle_button_mobile',
-          'hero_spacing_button_countup',
-          'hero_spacing_button_countup_mobile',
-          'hero_spacing_above_badge',
-          'hero_spacing_above_badge_mobile',
-          'hero_subtitle_uz',
-          'hero_subtitle_ru',
-          'hero_subtitle_white_words_uz',
-          'hero_subtitle_white_words_ru',
-        ]);
-
-      if (error) throw error;
-
-      const settingsObj: any = {};
-      data?.forEach((setting) => {
-        if (['offer_hours', 'hero_count_up_number', 'hero_count_up_duration', 'hero_count_up_duration_mobile', 'hero_count_up_text_size', 'hero_count_up_text_size_mobile', 'hero_button_height', 'hero_button_height_mobile', 'hero_button_width', 'hero_button_width_mobile', 'hero_title_size', 'hero_title_line1_size', 'hero_title_line2_size', 'hero_title_line1_size_mobile', 'hero_title_line2_size_mobile', 'hero_subtitle_size', 'hero_subtitle_size_mobile', 'hero_button_text_size', 'hero_button_text_size_mobile', 'hero_badge_text_size', 'hero_badge_text_size_mobile', 'hero_spacing_badge_title', 'hero_spacing_badge_title_mobile', 'hero_spacing_title_subtitle', 'hero_spacing_title_subtitle_mobile', 'hero_spacing_subtitle_button', 'hero_spacing_subtitle_button_mobile', 'hero_spacing_button_countup', 'hero_spacing_button_countup_mobile', 'hero_spacing_above_badge', 'hero_spacing_above_badge_mobile'].includes(setting.key)) {
-          settingsObj[setting.key] = parseFloat(setting.value);
-        } else if (setting.key === 'hero_count_up_enabled' || setting.key === 'offer_enabled') {
-          settingsObj[setting.key] = setting.value === 'true' || setting.value === true;
-        } else {
-          settingsObj[setting.key] = setting.value;
-        }
-      });
-
-      setSettings((prev) => ({ ...prev, ...settingsObj }));
-    } catch (error) {
-      console.error('Error fetching hero settings:', error);
-    }
-  };
-
-  const fetchCardImage = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'hero_card_image')
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data?.value) {
-        setCardImage(data.value as string);
-      }
-    } catch (error) {
-      console.error('Error fetching card image:', error);
-    }
-  };
-
-  const fetchPrimaryColor = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'primary_color')
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data?.value) {
-        setPrimaryColor(data.value);
-      }
-    } catch (error) {
-      console.error('Error fetching primary color:', error);
-    }
-  };
-
-  const fetchBadgeGlowSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', [
-          'tooth_icon_color',
-          'tooth_icon_glow_color',
-          'tooth_icon_glow_intensity',
-          'text_glow_color',
-          'text_glow_intensity',
-          'hero_badge_glow_intensity'
-        ]);
-
-      if (error) throw error;
-
-      let iconColor = '#2563eb';
-      let iconGlowColor: string | null = null;
-      let iconGlowIntensity: string | null = null;
-      let txtGlowColor: string | null = null;
-      let txtGlowIntensity: string | null = null;
-      let legacyGlowIntensity: string | null = null;
-
-      data?.forEach((setting) => {
-        if (setting.key === 'tooth_icon_color') {
-          iconColor = setting.value;
-        } else if (setting.key === 'tooth_icon_glow_color') {
-          iconGlowColor = setting.value;
-        } else if (setting.key === 'tooth_icon_glow_intensity') {
-          iconGlowIntensity = setting.value;
-        } else if (setting.key === 'text_glow_color') {
-          txtGlowColor = setting.value;
-        } else if (setting.key === 'text_glow_intensity') {
-          txtGlowIntensity = setting.value;
-        } else if (setting.key === 'hero_badge_glow_intensity') {
-          legacyGlowIntensity = setting.value;
-        }
-      });
-
-      setToothIconColor(iconColor);
-      setToothIconGlowColor(iconGlowColor || iconColor);
-      setToothIconGlowIntensity(iconGlowIntensity || legacyGlowIntensity || '50');
-      setTextGlowColor(txtGlowColor || '#ffffff');
-      setTextGlowIntensity(txtGlowIntensity || legacyGlowIntensity || '50');
-    } catch (error) {
-      console.error('Error fetching badge glow settings:', error);
-    }
-  };
-
-  const fetchToothIcon = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'tooth_icon_url')
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data?.value) {
-        setToothIconUrl(data.value as string);
-      }
-    } catch (error) {
-      console.error('Error fetching tooth icon:', error);
-    }
-  };
-
-  const fetchOvalFrameBorderColor = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'hero_oval_frame_border_color')
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data?.value) {
-        setOvalFrameBorderColor(data.value as string);
-      }
-    } catch (error) {
-      console.error('Error fetching oval frame border color:', error);
-    }
-  };
-
-  const fetchHeroImageDimensions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', ['hero_image_outer_width', 'hero_image_outer_height']);
-
-      if (error) throw error;
-
-      data?.forEach((setting) => {
-        if (setting.key === 'hero_image_outer_width') {
-          setHeroImageOuterWidth(parseInt(setting.value, 10));
-        } else if (setting.key === 'hero_image_outer_height') {
-          setHeroImageOuterHeight(parseInt(setting.value, 10));
-        }
-      });
-    } catch (error) {
-      console.error('Error fetching hero image dimensions:', error);
-    }
-  };
-
   const calculateGlowEffect = (intensity: string, color: string) => {
     const intensityValue = parseInt(intensity) / 100;
     if (intensityValue === 0) return 'none';

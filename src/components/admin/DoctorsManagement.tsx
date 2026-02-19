@@ -157,12 +157,7 @@ export default function DoctorsManagement() {
 
   const toggleActive = async (doctor: Doctor) => {
     try {
-      const { error } = await supabase
-        .from('doctors')
-        .update({ is_active: !doctor.is_active })
-        .eq('id', doctor.id);
-
-      if (error) throw error;
+      await api.updateDoctor(doctor.id!, { is_active: !doctor.is_active });
       fetchDoctors();
     } catch (error) {
       console.error('Error toggling doctor status:', error);

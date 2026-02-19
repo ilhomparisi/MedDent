@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 
 interface CRMUser {
   id: string;
@@ -43,54 +43,26 @@ export function CRMAuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   };
 
-  const hashPassword = async (password: string): Promise<string> => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  };
-
   const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    const passwordHash = await hashPassword(password);
+    try {
+      const result = await api.crmLogin(username, password);
+      
+      if (result.success && result.user) {
+        const session = {
+          id: result.user.id,
+          username: result.user.username,
+          expiresAt: Date.now() + SESSION_TIMEOUT
+        };
 
-    const { data, error } = await supabase
-      .from('crm_credentials')
-      .select('id, username, password_hash, is_active')
-      .eq('username', username)
-      .maybeSingle();
-
-    if (error) {
-      return { success: false, error: 'Xatolik yuz berdi' };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        setUser({ id: result.user.id, username: result.user.username });
+        return { success: true };
+      } else {
+        return { success: false, error: result.error || 'Login failed' };
+      }
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Xatolik yuz berdi' };
     }
-
-    if (!data) {
-      return { success: false, error: 'Foydalanuvchi topilmadi' };
-    }
-
-    if (!data.is_active) {
-      return { success: false, error: 'Hisob faolsizlantirilgan' };
-    }
-
-    if (data.password_hash !== passwordHash) {
-      return { success: false, error: 'Parol noto\'g\'ri' };
-    }
-
-    await supabase
-      .from('crm_credentials')
-      .update({ last_login: new Date().toISOString() })
-      .eq('id', data.id);
-
-    const session = {
-      id: data.id,
-      username: data.username,
-      expiresAt: Date.now() + SESSION_TIMEOUT
-    };
-
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    setUser({ id: data.id, username: data.username });
-
-    return { success: true };
   };
 
   const logout = () => {

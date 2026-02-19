@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { Plus, Edit2, Trash2, Eye, EyeOff, Check, X, User } from 'lucide-react';
 
 interface CRMUser {
-  id: string;
+  _id?: string;
+  id?: string;
   username: string;
   is_active: boolean;
   last_login: string | null;
@@ -25,23 +26,14 @@ export default function CRMCredentialsManagement() {
   }, []);
 
   const loadUsers = async () => {
-    const { data, error } = await supabase
-      .from('crm_credentials')
-      .select('id, username, is_active, last_login, created_at')
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setUsers(data);
+    try {
+      const data = await api.getCrmUsers();
+      setUsers(data.map((u: any) => ({ ...u, id: u._id || u.id })));
+    } catch (error) {
+      console.error('Error loading users:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
-
-  const hashPassword = async (password: string): Promise<string> => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,62 +59,50 @@ export default function CRMCredentialsManagement() {
       return;
     }
 
-    const passwordHash = formData.password ? await hashPassword(formData.password) : null;
-
-    if (editingId) {
-      const updateData: Record<string, unknown> = { username: formData.username };
-      if (passwordHash) {
-        updateData.password_hash = passwordHash;
+    try {
+      if (editingId) {
+        const updateData: any = { username: formData.username };
+        if (formData.password) {
+          updateData.password = formData.password;
+        }
+        await api.updateCrmUser(editingId, updateData);
+      } else {
+        await api.createCrmUser({
+          username: formData.username,
+          password: formData.password,
+        });
       }
 
-      const { error } = await supabase
-        .from('crm_credentials')
-        .update(updateData)
-        .eq('id', editingId);
-
-      if (error) {
-        setError(error.message.includes('duplicate') ? 'Bu foydalanuvchi nomi allaqachon mavjud' : error.message);
-        setSaving(false);
-        return;
-      }
-    } else {
-      const { error } = await supabase
-        .from('crm_credentials')
-        .insert({ username: formData.username, password_hash: passwordHash });
-
-      if (error) {
-        setError(error.message.includes('duplicate') ? 'Bu foydalanuvchi nomi allaqachon mavjud' : error.message);
-        setSaving(false);
-        return;
-      }
+      setFormData({ username: '', password: '' });
+      setShowForm(false);
+      setEditingId(null);
+      loadUsers();
+    } catch (error: any) {
+      setError(error.message?.includes('duplicate') || error.message?.includes('already') 
+        ? 'Bu foydalanuvchi nomi allaqachon mavjud' 
+        : error.message || 'Xatolik yuz berdi');
+    } finally {
+      setSaving(false);
     }
-
-    setFormData({ username: '', password: '' });
-    setShowForm(false);
-    setEditingId(null);
-    setSaving(false);
-    loadUsers();
-  };
-
-  const handleEdit = (user: CRMUser) => {
-    setFormData({ username: user.username, password: '' });
-    setEditingId(user.id);
-    setShowForm(true);
-    setError('');
   };
 
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
-    await supabase
-      .from('crm_credentials')
-      .update({ is_active: !currentStatus })
-      .eq('id', id);
-    loadUsers();
+    try {
+      await api.updateCrmUser(id, { is_active: !currentStatus });
+      loadUsers();
+    } catch (error) {
+      console.error('Error toggling user status:', error);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Haqiqatan ham bu foydalanuvchini o\'chirmoqchimisiz?')) return;
-    await supabase.from('crm_credentials').delete().eq('id', id);
-    loadUsers();
+    try {
+      await api.deleteCrmUser(id);
+      loadUsers();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    }
   };
 
   const formatDate = (dateStr: string | null) => {

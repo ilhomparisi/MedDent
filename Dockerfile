@@ -1,8 +1,18 @@
 FROM node:20-alpine
 
 WORKDIR /app
-RUN npm install -g pnpm
-COPY package.json ./
-RUN pnpm install
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code
 COPY . .
-CMD ["npm", "run", "dev"]
+
+# Expose port
+EXPOSE 5173
+
+# Start development server
+CMD ["npm", "run", "dev", "--", "--host"]

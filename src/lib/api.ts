@@ -529,6 +529,54 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Final CTA
+  async getFinalCTA() {
+    const response = await this.request<{ data: any }>('/final-cta');
+    return response.data;
+  }
+
+  async updateFinalCTA(data: any) {
+    return this.request<{ success: boolean; data: any }>('/final-cta', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Appointments
+  async createAppointment(appointment: any) {
+    return this.request<{ success: boolean; data: any }>('/appointments', {
+      method: 'POST',
+      body: JSON.stringify(appointment),
+    });
+  }
+
+  async getAppointments(status?: string) {
+    const params = status ? `?status=${status}` : '';
+    const response = await this.request<{ data: any[] }>(`/appointments${params}`);
+    return response.data;
+  }
+
+  async updateAppointment(id: string, appointment: any) {
+    return this.request<{ success: boolean; data: any }>(`/appointments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(appointment),
+    });
+  }
+
+  async deleteAppointment(id: string) {
+    return this.request<{ success: boolean }>(`/appointments/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // CRM Login
+  async crmLogin(username: string, password: string) {
+    return this.request<{ success: boolean; user?: { id: string; username: string }; error?: string }>('/crm-login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+  }
 }
 
 export const api = new ApiClient(API_BASE_URL);

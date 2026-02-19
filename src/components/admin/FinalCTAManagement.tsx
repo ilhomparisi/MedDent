@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { Smartphone, Monitor } from 'lucide-react';
 
 interface FinalCTA {
-  id: string;
+  _id?: string;
+  id?: string;
   is_active: boolean;
   heading_line1: string;
   heading_highlight1: string;
@@ -43,13 +44,10 @@ export default function FinalCTAManagement() {
 
   const fetchData = async () => {
     try {
-      const { data: result, error } = await supabase
-        .from('final_cta_section')
-        .select('*')
-        .maybeSingle();
-
-      if (error) throw error;
-      setData(result);
+      const result = await api.getFinalCTA();
+      if (result) {
+        setData({ ...result, id: result._id || result.id });
+      }
     } catch (error) {
       console.error('Error fetching final CTA:', error);
     } finally {
@@ -62,56 +60,52 @@ export default function FinalCTAManagement() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('final_cta_section')
-        .update({
-          is_active: data.is_active,
-          heading_line1: data.heading_line1,
-          heading_line1_uz: (data as any).heading_line1_uz || data.heading_line1,
-          heading_line1_ru: (data as any).heading_line1_ru || null,
-          heading_highlight1: data.heading_highlight1,
-          heading_highlight1_uz: (data as any).heading_highlight1_uz || data.heading_highlight1,
-          heading_highlight1_ru: (data as any).heading_highlight1_ru || null,
-          heading_line2: data.heading_line2,
-          heading_line2_uz: (data as any).heading_line2_uz || data.heading_line2,
-          heading_line2_ru: (data as any).heading_line2_ru || null,
-          heading_line3: data.heading_line3,
-          heading_line3_uz: (data as any).heading_line3_uz || data.heading_line3,
-          heading_line3_ru: (data as any).heading_line3_ru || null,
-          heading_highlight2: data.heading_highlight2,
-          heading_highlight2_uz: (data as any).heading_highlight2_uz || data.heading_highlight2,
-          heading_highlight2_ru: (data as any).heading_highlight2_ru || null,
-          heading_highlight3: data.heading_highlight3,
-          heading_highlight3_uz: (data as any).heading_highlight3_uz || data.heading_highlight3,
-          heading_highlight3_ru: (data as any).heading_highlight3_ru || null,
-          description: data.description,
-          description_uz: (data as any).description_uz || data.description,
-          description_ru: (data as any).description_ru || null,
-          button_text: data.button_text,
-          button_text_uz: (data as any).button_text_uz || data.button_text,
-          button_text_ru: (data as any).button_text_ru || null,
-          button_subtext: data.button_subtext,
-          button_subtext_uz: (data as any).button_subtext_uz || data.button_subtext,
-          button_subtext_ru: (data as any).button_subtext_ru || null,
-          heading_line1_size: data.heading_line1_size,
-          heading_highlight1_size: data.heading_highlight1_size,
-          heading_line2_size: data.heading_line2_size,
-          heading_line3_size: data.heading_line3_size,
-          heading_highlight2_size: data.heading_highlight2_size,
-          heading_highlight3_size: data.heading_highlight3_size,
-          description_size: data.description_size,
-          button_text_size: data.button_text_size,
-          button_subtext_size: data.button_subtext_size,
-          button_text_size_mobile: data.button_text_size_mobile,
-          button_subtext_size_mobile: data.button_subtext_size_mobile,
-          heading_alignment: data.heading_alignment,
-          description_alignment: data.description_alignment,
-          button_alignment: data.button_alignment,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', data.id);
+      const updateData = {
+        is_active: data.is_active,
+        heading_line1: data.heading_line1,
+        heading_line1_uz: (data as any).heading_line1_uz || data.heading_line1,
+        heading_line1_ru: (data as any).heading_line1_ru || null,
+        heading_highlight1: data.heading_highlight1,
+        heading_highlight1_uz: (data as any).heading_highlight1_uz || data.heading_highlight1,
+        heading_highlight1_ru: (data as any).heading_highlight1_ru || null,
+        heading_line2: data.heading_line2,
+        heading_line2_uz: (data as any).heading_line2_uz || data.heading_line2,
+        heading_line2_ru: (data as any).heading_line2_ru || null,
+        heading_line3: data.heading_line3,
+        heading_line3_uz: (data as any).heading_line3_uz || data.heading_line3,
+        heading_line3_ru: (data as any).heading_line3_ru || null,
+        heading_highlight2: data.heading_highlight2,
+        heading_highlight2_uz: (data as any).heading_highlight2_uz || data.heading_highlight2,
+        heading_highlight2_ru: (data as any).heading_highlight2_ru || null,
+        heading_highlight3: data.heading_highlight3,
+        heading_highlight3_uz: (data as any).heading_highlight3_uz || data.heading_highlight3,
+        heading_highlight3_ru: (data as any).heading_highlight3_ru || null,
+        description: data.description,
+        description_uz: (data as any).description_uz || data.description,
+        description_ru: (data as any).description_ru || null,
+        button_text: data.button_text,
+        button_text_uz: (data as any).button_text_uz || data.button_text,
+        button_text_ru: (data as any).button_text_ru || null,
+        button_subtext: data.button_subtext,
+        button_subtext_uz: (data as any).button_subtext_uz || data.button_subtext,
+        button_subtext_ru: (data as any).button_subtext_ru || null,
+        heading_line1_size: data.heading_line1_size,
+        heading_highlight1_size: data.heading_highlight1_size,
+        heading_line2_size: data.heading_line2_size,
+        heading_line3_size: data.heading_line3_size,
+        heading_highlight2_size: data.heading_highlight2_size,
+        heading_highlight3_size: data.heading_highlight3_size,
+        description_size: data.description_size,
+        button_text_size: data.button_text_size,
+        button_subtext_size: data.button_subtext_size,
+        button_text_size_mobile: data.button_text_size_mobile,
+        button_subtext_size_mobile: data.button_subtext_size_mobile,
+        heading_alignment: data.heading_alignment,
+        description_alignment: data.description_alignment,
+        button_alignment: data.button_alignment,
+      };
 
-      if (error) throw error;
+      await api.updateFinalCTA(updateData);
       alert('Settings saved successfully!');
     } catch (error) {
       console.error('Error saving:', error);

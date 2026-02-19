@@ -1,6 +1,26 @@
 import { useState, useEffect } from 'react';
-import { supabase, Review } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { Star, Trash2, Check, X, Search, Plus, Edit2, ArrowUp, ArrowDown } from 'lucide-react';
+
+interface Review {
+  _id?: string;
+  id?: string;
+  patient_name: string;
+  patient_name_uz?: string;
+  patient_name_ru?: string;
+  review_text: string;
+  review_text_uz?: string;
+  review_text_ru?: string;
+  rating: number;
+  service_used?: string;
+  service_used_uz?: string;
+  service_used_ru?: string;
+  image_url?: string | null;
+  is_approved: boolean;
+  is_featured?: boolean;
+  is_active?: boolean;
+  display_order?: number;
+}
 
 export default function ReviewsManagement() {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -36,13 +56,8 @@ export default function ReviewsManagement() {
 
   const fetchReviews = async () => {
     try {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('*')
-        .order('display_order', { ascending: true });
-
-      if (error) throw error;
-      setReviews(data || []);
+      const data = await api.getReviews();
+      setReviews(data.map((r: any) => ({ ...r, id: r._id || r.id })));
     } catch (error) {
       console.error('Error fetching reviews:', error);
       setMessage('Sharhlarni yuklashda xatolik yuz berdi');
@@ -65,17 +80,8 @@ export default function ReviewsManagement() {
       const swapReview = reviews[swapIndex];
 
       // Swap display_order values
-      const { error: error1 } = await supabase
-        .from('reviews')
-        .update({ display_order: swapReview.display_order })
-        .eq('id', review.id);
-
-      const { error: error2 } = await supabase
-        .from('reviews')
-        .update({ display_order: review.display_order })
-        .eq('id', swapReview.id);
-
-      if (error1 || error2) throw error1 || error2;
+      await api.updateReview(review.id!, { display_order: swapReview.display_order });
+      await api.updateReview(swapReview.id!, { display_order: review.display_order });
 
       await fetchReviews();
       setMessage(`Sharh ${direction === 'up' ? 'yuqoriga' : 'pastga'} ko'chirildi`);
@@ -108,12 +114,7 @@ export default function ReviewsManagement() {
 
   const toggleApproval = async (review: Review) => {
     try {
-      const { error } = await supabase
-        .from('reviews')
-        .update({ is_approved: !review.is_approved })
-        .eq('id', review.id);
-
-      if (error) throw error;
+      await api.updateReview(review.id!, { is_approved: !review.is_approved });
 
       setMessage(review.is_approved ? 'Sharh rad etildi' : 'Sharh tasdiqlandi');
       fetchReviews();
@@ -128,12 +129,7 @@ export default function ReviewsManagement() {
     if (!confirm(`${review.patient_name}ning sharhini o'chirmoqchimisiz?`)) return;
 
     try {
-      const { error } = await supabase
-        .from('reviews')
-        .delete()
-        .eq('id', review.id);
-
-      if (error) throw error;
+      await api.deleteReview(review.id!);
 
       setMessage('Sharh muvaffaqiyatli o\'chirildi!');
       fetchReviews();
@@ -201,19 +197,10 @@ export default function ReviewsManagement() {
       };
 
       if (editingReview) {
-        const { error } = await supabase
-          .from('reviews')
-          .update(reviewData)
-          .eq('id', editingReview.id);
-
-        if (error) throw error;
+        await api.updateReview(editingReview.id!, reviewData);
         setMessage('Sharh muvaffaqiyatli yangilandi!');
       } else {
-        const { error } = await supabase
-          .from('reviews')
-          .insert([reviewData]);
-
-        if (error) throw error;
+        await api.createReview(reviewData);
         setMessage('Sharh muvaffaqiyatli qo\'shildi!');
       }
 

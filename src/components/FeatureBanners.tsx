@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Frown, Wind, AlertCircle, Heart, Star, Shield, Sparkles, Plus, LucideIcon } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { useConfiguration } from '../contexts/ConfigurationContext';
 import SectionWrapper from './SectionWrapper';
 import { useLanguage } from '../contexts/LanguageContext';
 import { translations } from '../lib/translations';
@@ -35,91 +35,25 @@ const iconMap: { [key: string]: LucideIcon } = {
 
 export default function FeatureBanners({ onBookClick }: FeatureBannersProps) {
   const { language } = useLanguage();
+  const { getConfig } = useConfiguration();
   const t = translations[language];
-  const [primaryColor, setPrimaryColor] = useState('#2563eb');
-  const [settings, setSettings] = useState<KimUchunSettings>({
-    title: '',
-    title_align: 'left',
-    card1_text: '',
-    card1_icon: 'Frown',
-    card2_text: '',
-    card2_icon: 'Wind',
-    card3_text: '',
-    card3_icon: 'AlertCircle',
-    button_text: '',
-    button_align: 'center',
-    button_text_size: '16',
-  });
-  const [titleSize, setTitleSize] = useState('36');
-  const [cardTextSize, setCardTextSize] = useState('16');
-
-  useEffect(() => {
-    fetchSettings();
-    fetchPrimaryColor();
-  }, [language]);
-
-
-  const fetchSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', [
-          'kim_uchun_title',
-          'kim_uchun_title_align',
-          'kim_uchun_card1_text',
-          'kim_uchun_card1_icon',
-          'kim_uchun_card2_text',
-          'kim_uchun_card2_icon',
-          'kim_uchun_card3_text',
-          'kim_uchun_card3_icon',
-          'kim_uchun_button_text',
-          'kim_uchun_button_align',
-          'kim_uchun_button_text_size',
-          'kim_uchun_title_size',
-          'kim_uchun_card_text_size',
-        ]);
-
-      if (error) throw error;
-
-      const settingsObj: any = {};
-      data?.forEach((setting) => {
-        const key = setting.key.replace('kim_uchun_', '');
-        if (key === 'title_size') {
-          setTitleSize(setting.value);
-        } else if (key === 'card_text_size') {
-          setCardTextSize(setting.value);
-        } else {
-          settingsObj[key] = setting.value;
-        }
-      });
-
-      setSettings((prev) => ({
-        ...prev,
-        ...settingsObj,
-      }));
-    } catch (error) {
-      console.error('Error fetching kim uchun settings:', error);
-    }
+  
+  const primaryColor = getConfig('primary_color', '#2563eb');
+  const settings: KimUchunSettings = {
+    title: getConfig('kim_uchun_title', ''),
+    title_align: getConfig('kim_uchun_title_align', 'left'),
+    card1_text: getConfig('kim_uchun_card1_text', ''),
+    card1_icon: getConfig('kim_uchun_card1_icon', 'Frown'),
+    card2_text: getConfig('kim_uchun_card2_text', ''),
+    card2_icon: getConfig('kim_uchun_card2_icon', 'Wind'),
+    card3_text: getConfig('kim_uchun_card3_text', ''),
+    card3_icon: getConfig('kim_uchun_card3_icon', 'AlertCircle'),
+    button_text: getConfig('kim_uchun_button_text', ''),
+    button_align: getConfig('kim_uchun_button_align', 'center'),
+    button_text_size: getConfig('kim_uchun_button_text_size', '16'),
   };
-
-  const fetchPrimaryColor = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'primary_color')
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data?.value) {
-        setPrimaryColor(data.value);
-      }
-    } catch (error) {
-      console.error('Error fetching primary color:', error);
-    }
-  };
+  const titleSize = getConfig('kim_uchun_title_size', '36');
+  const cardTextSize = getConfig('kim_uchun_card_text_size', '16');
 
   const getIcon = (iconName: string) => {
     const Icon = iconMap[iconName] || AlertCircle;

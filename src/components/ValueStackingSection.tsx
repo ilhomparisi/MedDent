@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
+import { useConfiguration } from '../contexts/ConfigurationContext';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface ValueStackingSectionProps {
@@ -8,7 +9,8 @@ interface ValueStackingSectionProps {
 }
 
 interface ValueStacking {
-  id: string;
+  _id?: string;
+  id?: string;
   main_heading: string;
   left_pay_label: string;
   left_price: string;
@@ -43,19 +45,20 @@ interface ValueStacking {
 
 export default function ValueStackingSection({ onOpenConsultation }: ValueStackingSectionProps) {
   const { language } = useLanguage();
+  const { getConfig } = useConfiguration();
   const [data, setData] = useState<ValueStacking | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-  const [gradientSettings, setGradientSettings] = useState({
-    opacity: '0.25',
-    width: '90',
-    height: '85',
-    blur: '60',
-  });
+  
+  const gradientSettings = {
+    opacity: getConfig('value_stacking_gradient_opacity', '0.25'),
+    width: getConfig('value_stacking_gradient_width', '90'),
+    height: getConfig('value_stacking_gradient_height', '85'),
+    blur: getConfig('value_stacking_gradient_blur', '60'),
+  };
 
   useEffect(() => {
     fetchData();
-    fetchGradientSettings();
   }, [language]);
 
   useEffect(() => {
@@ -69,17 +72,13 @@ export default function ValueStackingSection({ onOpenConsultation }: ValueStacki
 
   const fetchData = async () => {
     try {
-      const { data: result, error } = await supabase
-        .from('value_stacking')
-        .select('*')
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (error) throw error;
+      const items = await api.getValueItems(true);
+      const result = items.find((item: any) => item.is_active) || items[0] || null;
 
       if (result) {
         const dataWithLang = {
           ...result,
+          id: result._id || result.id,
           main_heading: language === 'ru' && result.main_heading_ru ? result.main_heading_ru : result.main_heading_uz || result.main_heading,
           left_pay_label: language === 'ru' && result.left_pay_label_ru ? result.left_pay_label_ru : result.left_pay_label_uz || result.left_pay_label,
           left_price: language === 'ru' && result.left_price_ru ? result.left_price_ru : result.left_price_uz || result.left_price,
@@ -97,29 +96,6 @@ export default function ValueStackingSection({ onOpenConsultation }: ValueStacki
       console.error('Error fetching value stacking:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchGradientSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', ['gradient_opacity', 'gradient_width', 'gradient_height', 'gradient_blur']);
-
-      if (error) throw error;
-
-      const settingsObj: any = {};
-      data?.forEach((setting) => {
-        if (setting.key === 'gradient_opacity') settingsObj.opacity = setting.value;
-        else if (setting.key === 'gradient_width') settingsObj.width = setting.value;
-        else if (setting.key === 'gradient_height') settingsObj.height = setting.value;
-        else if (setting.key === 'gradient_blur') settingsObj.blur = setting.value;
-      });
-
-      setGradientSettings(prev => ({ ...prev, ...settingsObj }));
-    } catch (error) {
-      console.error('Error fetching gradient settings:', error);
     }
   };
 

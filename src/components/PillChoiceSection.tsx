@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Pill, Plus } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface PillChoiceSectionProps {
@@ -8,7 +8,8 @@ interface PillChoiceSectionProps {
 }
 
 interface PillSection {
-  id: string;
+  _id?: string;
+  id?: string;
   section_type: 'white' | 'black';
   main_heading: string;
   subheading: string;
@@ -57,16 +58,11 @@ export default function PillChoiceSection({ onOpenConsultation }: PillChoiceSect
 
   const fetchSections = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('pill_sections')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
+      const data = await api.getPillSections(true);
 
-      if (error) throw error;
-
-      const sectionsWithLang = data?.map(section => ({
+      const sectionsWithLang = data.map((section: any) => ({
         ...section,
+        id: section._id || section.id,
         main_heading: language === 'ru' && section.main_heading_ru ? section.main_heading_ru : section.main_heading_uz || section.main_heading,
         subheading: language === 'ru' && section.subheading_ru ? section.subheading_ru : section.subheading_uz || section.subheading,
         blue_pill_title: language === 'ru' && section.blue_pill_title_ru ? section.blue_pill_title_ru : section.blue_pill_title_uz || section.blue_pill_title,
@@ -76,7 +72,7 @@ export default function PillChoiceSection({ onOpenConsultation }: PillChoiceSect
         red_pill_description: language === 'ru' && section.red_pill_description_ru ? section.red_pill_description_ru : section.red_pill_description_uz || section.red_pill_description,
         red_pill_details: language === 'ru' && section.red_pill_details_ru ? section.red_pill_details_ru : section.red_pill_details_uz || section.red_pill_details,
         button_text: language === 'ru' && section.button_text_ru ? section.button_text_ru : section.button_text_uz || section.button_text,
-      })) || [];
+      }));
 
       setSections(sectionsWithLang);
     } catch (error) {
@@ -88,25 +84,6 @@ export default function PillChoiceSection({ onOpenConsultation }: PillChoiceSect
 
   useEffect(() => {
     fetchSections();
-
-    const channel = supabase
-      .channel('pill-sections-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'pill_sections',
-        },
-        () => {
-          fetchSections();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [fetchSections]);
 
   if (loading) {

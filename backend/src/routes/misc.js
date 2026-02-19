@@ -18,7 +18,8 @@ import {
   getAllCRMUsers,
   createCRMUser,
   updateCRMUser,
-  deleteCRMUser
+  deleteCRMUser,
+  crmLogin
 } from '../controllers/miscController.js';
 
 const router = express.Router();
@@ -48,5 +49,6 @@ router.get('/crm-users', authenticateAdmin, getAllCRMUsers);
 router.post('/crm-users', authenticateAdmin, createCRMUser);
 router.put('/crm-users/:id', authenticateAdmin, updateCRMUser);
 router.delete('/crm-users/:id', authenticateAdmin, deleteCRMUser);
+router.post('/crm-login', crmLogin);
 
 export default router;

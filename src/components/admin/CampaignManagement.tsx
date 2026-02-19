@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { Plus, Edit2, Trash2, Copy, Check, X, Link2, MousePointer, FileText, ExternalLink } from 'lucide-react';
 
 interface Campaign {
-  id: string;
+  _id?: string;
+  id?: string;
   campaign_name: string;
   unique_code: string;
   is_active: boolean;
@@ -29,30 +30,28 @@ export default function CampaignManagement() {
   }, []);
 
   const loadCampaigns = async () => {
-    const { data: campaignsData } = await supabase
-      .from('campaign_links')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (campaignsData) {
-      const { data: submissions } = await supabase
-        .from('consultation_forms')
-        .select('source');
-
+    try {
+      const campaignsData = await api.getCampaignLinks();
+      const forms = await api.getConsultationForms();
+      
       const submissionCounts: Record<string, number> = {};
-      submissions?.forEach(s => {
+      forms.forEach((s: any) => {
         const source = s.source || '';
         submissionCounts[source] = (submissionCounts[source] || 0) + 1;
       });
 
-      const enrichedCampaigns = campaignsData.map(c => ({
+      const enrichedCampaigns = campaignsData.map((c: any) => ({
         ...c,
+        id: c._id || c.id,
         submission_count: submissionCounts[c.unique_code] || 0
       }));
 
       setCampaigns(enrichedCampaigns);
+    } catch (error) {
+      console.error('Error loading campaigns:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const generateSlug = (name: string): string => {
@@ -100,26 +99,9 @@ export default function CampaignManagement() {
     };
 
     if (editingId) {
-      const { error } = await supabase
-        .from('campaign_links')
-        .update(campaignData)
-        .eq('id', editingId);
-
-      if (error) {
-        setError(error.message.includes('duplicate') ? 'Bu kod allaqachon ishlatilgan' : error.message);
-        setSaving(false);
-        return;
-      }
+      await api.updateCampaignLink(editingId, campaignData);
     } else {
-      const { error } = await supabase
-        .from('campaign_links')
-        .insert(campaignData);
-
-      if (error) {
-        setError(error.message.includes('duplicate') ? 'Bu kod allaqachon ishlatilgan' : error.message);
-        setSaving(false);
-        return;
-      }
+      await api.createCampaignLink(campaignData);
     }
 
     setFormData({ name: '', code: '', expiry: '' });
@@ -141,17 +123,22 @@ export default function CampaignManagement() {
   };
 
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
-    await supabase
-      .from('campaign_links')
-      .update({ is_active: !currentStatus })
-      .eq('id', id);
-    loadCampaigns();
+    try {
+      await api.updateCampaignLink(id, { is_active: !currentStatus });
+      loadCampaigns();
+    } catch (error) {
+      console.error('Error toggling campaign status:', error);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Haqiqatan ham bu kampaniyani o\'chirmoqchimisiz?')) return;
-    await supabase.from('campaign_links').delete().eq('id', id);
-    loadCampaigns();
+    try {
+      await api.deleteCampaignLink(id);
+      loadCampaigns();
+    } catch (error) {
+      console.error('Error deleting campaign:', error);
+    }
   };
 
   const copyLink = async (code: string, id: string) => {

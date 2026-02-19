@@ -192,3 +192,44 @@ export const deleteCRMUser = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete CRM user' });
   }
 };
+
+export const crmLogin = async (req, res) => {
+  try {
+    const CRMUser = (await import('../models/CRMUser.js')).default;
+    const bcrypt = (await import('bcryptjs')).default;
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+
+    const user = await CRMUser.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    if (!user.is_active) {
+      return res.status(401).json({ error: 'Account is inactive' });
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Update last login
+    user.last_login = new Date();
+    await user.save();
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id.toString(),
+        username: user.username
+      }
+    });
+  } catch (error) {
+    console.error('Error in CRM login:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+};

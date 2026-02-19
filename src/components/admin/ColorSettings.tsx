@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { Save } from 'lucide-react';
 
 export default function ColorSettings() {
@@ -19,18 +19,13 @@ export default function ColorSettings() {
 
   const fetchColors = async () => {
     try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', ['primary_color', 'secondary_color', 'accent_color', 'hero_oval_frame_border_color']);
-
-      if (error) throw error;
-
+      const settings = await api.getSiteSettings();
       const colorsObj: any = {};
-      data?.forEach((setting) => {
-        colorsObj[setting.key] = setting.value;
+      settings.forEach((setting: any) => {
+        if (['primary_color', 'secondary_color', 'accent_color', 'hero_oval_frame_border_color'].includes(setting.key)) {
+          colorsObj[setting.key] = setting.value;
+        }
       });
-
       setColors((prev) => ({ ...prev, ...colorsObj }));
     } catch (error) {
       console.error('Error fetching colors:', error);
@@ -44,19 +39,8 @@ export default function ColorSettings() {
     setMessage('');
 
     try {
-      const updates = Object.entries(colors).map(([key, value]) => ({
-        key,
-        value: value,
-        category: 'colors',
-        updated_at: new Date().toISOString(),
-      }));
-
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('site_settings')
-          .upsert(update, { onConflict: 'key' });
-
-        if (error) throw error;
+      for (const [key, value] of Object.entries(colors)) {
+        await api.updateSiteSetting(key, value);
       }
 
       setMessage('Ranglar muvaffaqiyatli saqlandi!');

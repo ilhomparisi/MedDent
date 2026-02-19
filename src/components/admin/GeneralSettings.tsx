@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { Save, Upload, Languages } from 'lucide-react';
 import { uploadImage } from '../../lib/imageUpload';
 
@@ -36,22 +36,16 @@ export default function GeneralSettings() {
 
   const fetchSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', ['offer_enabled', 'offer_hours', 'site_logo', 'tooth_icon_url', 'edge_blend_enabled', 'edge_blend_width', 'edge_blend_side', 'countdown_expiry_text', 'countdown_expiry_text_size', 'countdown_expiry_text_weight', 'countdown_expiry_text_align', 'countdown_glow_text', 'countdown_glow_color', 'countdown_glow_intensity', 'hero_subtitle_uz', 'hero_subtitle_ru', 'hero_subtitle_white_words_uz', 'hero_subtitle_white_words_ru']);
-
-      if (error) throw error;
-
+      const settings = await api.getSiteSettings();
       const settingsObj: any = {};
-      data?.forEach((setting) => {
-        if (['offer_hours', 'edge_blend_width', 'countdown_expiry_text_size', 'countdown_expiry_text_weight', 'countdown_glow_intensity'].includes(setting.key)) {
-          settingsObj[setting.key] = parseFloat(setting.value);
+      settings.forEach((setting: any) => {
+        const key = setting.key;
+        if (['offer_hours', 'edge_blend_width', 'countdown_expiry_text_size', 'countdown_expiry_text_weight', 'countdown_glow_intensity'].includes(key)) {
+          settingsObj[key] = parseFloat(setting.value);
         } else {
-          settingsObj[setting.key] = setting.value;
+          settingsObj[key] = setting.value;
         }
       });
-
       setSettings((prev) => ({ ...prev, ...settingsObj }));
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -70,17 +64,7 @@ export default function GeneralSettings() {
     try {
       const logoUrl = await uploadImage(file, 'logos');
       setSettings({ ...settings, site_logo: logoUrl });
-
-      const { error } = await supabase
-        .from('site_settings')
-        .upsert({
-          key: 'site_logo',
-          value: logoUrl,
-          category: 'general',
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'key' });
-
-      if (error) throw error;
+      await api.updateSiteSetting('site_logo', logoUrl);
 
       setMessage('Logo muvaffaqiyatli yuklandi!');
       setTimeout(() => setMessage(''), 3000);
@@ -102,17 +86,7 @@ export default function GeneralSettings() {
     try {
       const iconUrl = await uploadImage(file, 'logos');
       setSettings({ ...settings, tooth_icon_url: iconUrl });
-
-      const { error } = await supabase
-        .from('site_settings')
-        .upsert({
-          key: 'tooth_icon_url',
-          value: iconUrl,
-          category: 'general',
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'key' });
-
-      if (error) throw error;
+      await api.updateSiteSetting('tooth_icon_url', iconUrl);
 
       setMessage('Tish belgisi muvaffaqiyatli yuklandi!');
       setTimeout(() => setMessage(''), 3000);
@@ -130,16 +104,7 @@ export default function GeneralSettings() {
 
     try {
       for (const [key, value] of Object.entries(settings)) {
-        const { error } = await supabase
-          .from('site_settings')
-          .upsert({
-            key,
-            value: String(value),
-            category: 'general',
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'key' });
-
-        if (error) throw error;
+        await api.updateSiteSetting(key, String(value));
       }
 
       setMessage('Sozlamalar muvaffaqiyatli saqlandi!');

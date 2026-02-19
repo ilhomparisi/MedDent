@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 
 export default function GradientSettings() {
   const [settings, setSettings] = useState({
@@ -17,18 +17,13 @@ export default function GradientSettings() {
 
   const fetchSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', ['gradient_opacity', 'gradient_width', 'gradient_height', 'gradient_blur']);
-
-      if (error) throw error;
-
+      const settings = await api.getSiteSettings();
       const settingsObj: any = {};
-      data?.forEach((setting) => {
-        settingsObj[setting.key] = setting.value;
+      settings.forEach((setting: any) => {
+        if (['gradient_opacity', 'gradient_width', 'gradient_height', 'gradient_blur'].includes(setting.key)) {
+          settingsObj[setting.key] = setting.value;
+        }
       });
-
       setSettings((prev) => ({ ...prev, ...settingsObj }));
     } catch (error) {
       console.error('Error fetching gradient settings:', error);
@@ -40,19 +35,8 @@ export default function GradientSettings() {
     setMessage('');
 
     try {
-      const updates = Object.entries(settings).map(([key, value]) => ({
-        key,
-        value,
-        category: 'appearance',
-      }));
-
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('site_settings')
-          .update({ value: update.value })
-          .eq('key', update.key);
-
-        if (error) throw error;
+      for (const [key, value] of Object.entries(settings)) {
+        await api.updateSiteSetting(key, value);
       }
 
       setMessage('Gradient settings saved successfully!');

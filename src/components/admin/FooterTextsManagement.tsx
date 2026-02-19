@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { Save, Languages } from 'lucide-react';
 
 interface FooterText {
@@ -23,15 +23,27 @@ export default function FooterTextsManagement() {
 
   const fetchTexts = async () => {
     try {
-      const { data, error } = await supabase
-        .from('ui_texts')
-        .select('key, value, value_uz, value_ru, description')
-        .eq('section', 'footer')
-        .order('key');
+      // Footer texts are stored in site_settings with footer_ prefix
+      const settings = await api.getSiteSettings();
+      const footerKeys = ['description', 'quick_links', 'our_services', 'our_doctors', 'patient_reviews', 
+        'book_appointment', 'contact_us', 'working_hours', 'emergency', 'emergency_text', 
+        'copyright', 'privacy', 'terms', 'cookies'];
+      
+      const texts: FooterText[] = footerKeys.map(key => {
+        const base = settings.find((s: any) => s.key === `footer_${key}`);
+        const uz = settings.find((s: any) => s.key === `footer_${key}_uz`);
+        const ru = settings.find((s: any) => s.key === `footer_${key}_ru`);
+        
+        return {
+          key,
+          value: base?.value || '',
+          value_uz: uz?.value || base?.value || '',
+          value_ru: ru?.value || null,
+          description: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+        };
+      });
 
-      if (error) throw error;
-
-      setTexts(data || []);
+      setTexts(texts);
     } catch (error) {
       console.error('Error fetching footer texts:', error);
     } finally {
@@ -58,18 +70,11 @@ export default function FooterTextsManagement() {
 
     try {
       for (const text of texts) {
-        const { error } = await supabase
-          .from('ui_texts')
-          .update({
-            value: text.value,
-            value_uz: text.value_uz,
-            value_ru: text.value_ru,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('key', text.key)
-          .eq('section', 'footer');
-
-        if (error) throw error;
+        await api.updateSiteSetting(`footer_${text.key}`, text.value);
+        await api.updateSiteSetting(`footer_${text.key}_uz`, text.value_uz);
+        if (text.value_ru) {
+          await api.updateSiteSetting(`footer_${text.key}_ru`, text.value_ru);
+        }
       }
 
       setMessage('Footer matnlari muvaffaqiyatli saqlandi!');

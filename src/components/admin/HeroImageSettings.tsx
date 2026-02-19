@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { RotateCcw } from 'lucide-react';
 
 const DEFAULT_WIDTH = 236;
@@ -25,23 +25,14 @@ export default function HeroImageSettings() {
 
   const fetchSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', ['hero_image_outer_width', 'hero_image_outer_height']);
-
-      if (error) throw error;
-
-      const settings: Record<string, string> = {};
-      data?.forEach((setting) => {
-        settings[setting.key] = setting.value;
-      });
-
-      if (settings.hero_image_outer_width) {
-        setOuterWidth(parseInt(settings.hero_image_outer_width, 10));
+      const width = await api.getSiteSetting('hero_image_outer_width');
+      const height = await api.getSiteSetting('hero_image_outer_height');
+      
+      if (width) {
+        setOuterWidth(parseInt(String(width), 10));
       }
-      if (settings.hero_image_outer_height) {
-        setOuterHeight(parseInt(settings.hero_image_outer_height, 10));
+      if (height) {
+        setOuterHeight(parseInt(String(height), 10));
       }
     } catch (error) {
       console.error('Error fetching hero image settings:', error);
@@ -51,16 +42,9 @@ export default function HeroImageSettings() {
 
   const fetchCardImage = async () => {
     try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'hero_card_image')
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data?.value) {
-        setCardImage(data.value as string);
+      const image = await api.getSiteSetting('hero_card_image');
+      if (image) {
+        setCardImage(String(image));
       }
     } catch (error) {
       console.error('Error fetching card image:', error);
@@ -69,16 +53,9 @@ export default function HeroImageSettings() {
 
   const fetchOvalFrameBorderColor = async () => {
     try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'hero_oval_frame_border_color')
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data?.value) {
-        setOvalFrameBorderColor(data.value as string);
+      const color = await api.getSiteSetting('hero_oval_frame_border_color');
+      if (color) {
+        setOvalFrameBorderColor(String(color));
       }
     } catch (error) {
       console.error('Error fetching oval frame border color:', error);
@@ -93,18 +70,8 @@ export default function HeroImageSettings() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const updates = [
-        { key: 'hero_image_outer_width', value: outerWidth.toString(), category: 'appearance' },
-        { key: 'hero_image_outer_height', value: outerHeight.toString(), category: 'appearance' },
-      ];
-
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('site_settings')
-          .upsert(update, { onConflict: 'key' });
-
-        if (error) throw error;
-      }
+      await api.updateSiteSetting('hero_image_outer_width', outerWidth.toString());
+      await api.updateSiteSetting('hero_image_outer_height', outerHeight.toString());
 
       showMessage('success', 'Sozlamalar muvaffaqiyatli saqlandi');
     } catch (error) {

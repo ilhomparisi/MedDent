@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
+import { useConfiguration } from '../contexts/ConfigurationContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { translations } from '../lib/translations';
 
@@ -9,38 +10,41 @@ interface PatientResultsSectionProps {
 
 export default function PatientResultsSection({ onOpenConsultation }: PatientResultsSectionProps) {
   const { language } = useLanguage();
+  const { getConfig } = useConfiguration();
   const t = translations[language];
   const [resultImages, setResultImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uiTexts, setUiTexts] = useState({
-    title: 'Bemorlarimiz Natijalari',
-    subtitle: 'Muvaffaqiyatli davolash natijalari va tabassumlar',
-    title_align: 'center',
-    subtitle_align: 'center',
-    title_size: '36',
-    subtitle_size: '18',
-    cta_text: 'Yours can be the next one.',
-    cta_text_size: '20',
-    cta_text_weight: '400',
-    cta_text_align: 'center',
-    button_text: 'YES! GIVE ME ACCESS NOW',
-    button_text_size_desktop: '18',
-    button_text_size_mobile: '16',
-    button_url: '#booking',
-    button_enabled: true,
-    subtext: 'Secure your access today and start your journey.',
-    subtext_size: '14',
-    subtext_align: 'center',
-    shadow_opacity: '0.9',
-    solid_blue_width: '64',
-    shadow_width: '192',
-  });
-  const [gradientSettings, setGradientSettings] = useState({
-    opacity: '0.25',
-    width: '90',
-    height: '85',
-    blur: '60',
-  });
+  
+  const uiTexts = {
+    title: getConfig(`results_title${language === 'uz' ? '_uz' : language === 'ru' ? '_ru' : ''}`, 'Bemorlarimiz Natijalari'),
+    subtitle: getConfig(`results_subtitle${language === 'uz' ? '_uz' : language === 'ru' ? '_ru' : ''}`, 'Muvaffaqiyatli davolash natijalari va tabassumlar'),
+    title_align: getConfig('results_title_align', 'center'),
+    subtitle_align: getConfig('results_subtitle_align', 'center'),
+    title_size: getConfig('results_title_size', '36'),
+    subtitle_size: getConfig('results_subtitle_size', '18'),
+    cta_text: getConfig(`results_cta_text${language === 'uz' ? '_uz' : language === 'ru' ? '_ru' : ''}`, 'Yours can be the next one.'),
+    cta_text_size: getConfig('results_cta_text_size', '20'),
+    cta_text_weight: getConfig('results_cta_text_weight', '400'),
+    cta_text_align: getConfig('results_cta_text_align', 'center'),
+    button_text: getConfig(`results_button_text${language === 'uz' ? '_uz' : language === 'ru' ? '_ru' : ''}`, 'YES! GIVE ME ACCESS NOW'),
+    button_text_size_desktop: getConfig('results_button_text_size_desktop', '18'),
+    button_text_size_mobile: getConfig('results_button_text_size_mobile', '16'),
+    button_url: getConfig('results_button_url', '#booking'),
+    button_enabled: getConfig('results_button_enabled', true),
+    subtext: getConfig(`results_subtext${language === 'uz' ? '_uz' : language === 'ru' ? '_ru' : ''}`, 'Secure your access today and start your journey.'),
+    subtext_size: getConfig('results_subtext_size', '14'),
+    subtext_align: getConfig('results_subtext_align', 'center'),
+    shadow_opacity: getConfig('results_shadow_opacity', '0.9'),
+    solid_blue_width: getConfig('results_solid_blue_width', '64'),
+    shadow_width: getConfig('results_shadow_width', '192'),
+  };
+  
+  const gradientSettings = {
+    opacity: getConfig('gradient_opacity', '0.25'),
+    width: getConfig('gradient_width', '90'),
+    height: getConfig('gradient_height', '85'),
+    blur: getConfig('gradient_blur', '60'),
+  };
 
   const topRowRef = useRef<HTMLDivElement>(null);
   const bottomRowRef = useRef<HTMLDivElement>(null);
@@ -58,24 +62,13 @@ export default function PatientResultsSection({ onOpenConsultation }: PatientRes
 
   useEffect(() => {
     fetchResultImages();
-    fetchUITexts();
-    fetchGradientSettings();
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchUITexts();
-        fetchGradientSettings();
-      }
-    };
 
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('resize', handleResize);
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('resize', handleResize);
     };
   }, [language]);
@@ -130,87 +123,21 @@ export default function PatientResultsSection({ onOpenConsultation }: PatientRes
 
   const fetchResultImages = async () => {
     try {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('image_url')
-        .eq('is_approved', true)
-        .not('image_url', 'is', null)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
+      const data = await api.getReviews();
       const images = data
-        ?.map(item => item.image_url)
-        .filter((url): url is string => url !== null && url !== undefined) || [];
+        .filter((r: any) => r.is_approved && r.image_url)
+        .map((r: any) => r.image_url)
+        .filter((url: any): url is string => url !== null && url !== undefined)
+        .sort((a: string, b: string) => {
+          // Sort by creation date if available, otherwise keep order
+          return 0;
+        });
 
       setResultImages(images);
     } catch (error) {
       console.error('Error fetching result images:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchUITexts = async () => {
-    try {
-      const langSuffix = language === 'uz' ? '_uz' : language === 'ru' ? '_ru' : '';
-
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', [
-          `results_title${langSuffix}`, `results_subtitle${langSuffix}`,
-          `results_cta_text${langSuffix}`, `results_button_text${langSuffix}`,
-          `results_subtext${langSuffix}`,
-          'results_title_align', 'results_subtitle_align',
-          'results_title_size', 'results_subtitle_size',
-          'results_cta_text_size', 'results_cta_text_weight', 'results_cta_text_align',
-          'results_button_text_size_desktop', 'results_button_text_size_mobile',
-          'results_button_url', 'results_button_enabled',
-          'results_subtext_size', 'results_subtext_align',
-          'results_shadow_opacity', 'results_solid_blue_width', 'results_shadow_width'
-        ]);
-
-      if (error) throw error;
-
-      const textsObj: any = {};
-      data?.forEach((setting) => {
-        let key = setting.key;
-
-        if (key.endsWith(langSuffix)) {
-          key = key.replace(langSuffix, '');
-        }
-
-        key = key.replace('results_', '');
-        textsObj[key] = setting.value;
-      });
-
-      setUiTexts(prev => ({ ...prev, ...textsObj }));
-    } catch (error) {
-      console.error('Error fetching UI texts:', error);
-    }
-  };
-
-  const fetchGradientSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', ['gradient_opacity', 'gradient_width', 'gradient_height', 'gradient_blur']);
-
-      if (error) throw error;
-
-      const settingsObj: any = {};
-      data?.forEach((setting) => {
-        if (setting.key === 'gradient_opacity') settingsObj.opacity = setting.value;
-        else if (setting.key === 'gradient_width') settingsObj.width = setting.value;
-        else if (setting.key === 'gradient_height') settingsObj.height = setting.value;
-        else if (setting.key === 'gradient_blur') settingsObj.blur = setting.value;
-      });
-
-      setGradientSettings(prev => ({ ...prev, ...settingsObj }));
-    } catch (error) {
-      console.error('Error fetching gradient settings:', error);
     }
   };
 

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface FinalCTA {
-  id: string;
+  _id?: string;
+  id?: string;
   is_active: boolean;
   heading_line1: string;
   heading_highlight1: string;
@@ -45,15 +46,9 @@ export default function FinalCTASection({ onOpenConsultation }: FinalCTASectionP
 
   const fetchData = async () => {
     try {
-      const { data: result, error } = await supabase
-        .from('final_cta_section')
-        .select('*')
-        .eq('is_active', true)
-        .maybeSingle();
+      const result = await api.getFinalCTA();
 
-      if (error) throw error;
-
-      if (result) {
+      if (result && result.is_active) {
         const dataWithLang = {
           ...result,
           heading_line1: language === 'ru' && result.heading_line1_ru ? result.heading_line1_ru : result.heading_line1_uz || result.heading_line1,

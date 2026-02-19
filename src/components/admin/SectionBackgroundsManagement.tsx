@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { Upload, X, Save, Image, Video, Palette, Layers } from 'lucide-react';
 
 // Preview Component Imports
@@ -16,7 +16,8 @@ import FinalCTASection from '../FinalCTASection';
 import FeatureBanners from '../FeatureBanners';
 
 interface SectionBackground {
-  id: string;
+  _id?: string;
+  id?: string;
   section_name: string;
   background_type: 'color' | 'image' | 'video' | 'gradient';
   background_value: string;
@@ -134,13 +135,8 @@ export default function SectionBackgroundsManagement() {
 
   const fetchBackgrounds = async () => {
     try {
-      const { data, error } = await supabase
-        .from('section_backgrounds')
-        .select('*')
-        .order('section_name');
-
-      if (error) throw error;
-      setBackgrounds(data || []);
+      const data = await api.getSectionBackgrounds();
+      setBackgrounds(data.map((bg: any) => ({ ...bg, id: bg._id || bg.id })));
     } catch (error) {
       console.error('Error fetching backgrounds:', error);
       setMessage('Error loading backgrounds');
@@ -149,16 +145,9 @@ export default function SectionBackgroundsManagement() {
 
   const fetchHeroOvalFrame = async () => {
     try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'hero_oval_frame')
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data?.value !== undefined) {
-        setHeroOvalFrame(data.value === 'true' || data.value === true);
+      const value = await api.getSiteSetting('hero_oval_frame');
+      if (value !== undefined && value !== null) {
+        setHeroOvalFrame(value === 'true' || value === true);
       }
     } catch (error) {
       console.error('Error fetching hero oval frame setting:', error);
@@ -167,13 +156,7 @@ export default function SectionBackgroundsManagement() {
 
   const saveHeroOvalFrame = async (enabled: boolean) => {
     try {
-      const { error } = await supabase
-        .from('site_settings')
-        .update({ value: enabled.toString() })
-        .eq('key', 'hero_oval_frame');
-
-      if (error) throw error;
-
+      await api.updateSiteSetting('hero_oval_frame', enabled.toString());
       setMessage('Hero oval frame setting saved successfully');
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
@@ -198,25 +181,18 @@ export default function SectionBackgroundsManagement() {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${selectedSection}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('section-backgrounds')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('section-backgrounds')
-        .getPublicUrl(filePath);
-
-      setFormData(prev => ({
-        ...prev,
-        image_url: publicUrl,
-        background_type: fileType,
-      }));
-
-      setMessage(`${fileType === 'image' ? 'Image' : 'Video'} uploaded successfully`);
+      const result = await api.uploadFile(file, fileName);
+      if (result.success && result.url) {
+        setFormData(prev => ({
+          ...prev,
+          image_url: result.url,
+          background_type: fileType,
+        }));
+        setMessage(`${fileType === 'image' ? 'Image' : 'Video'} uploaded successfully`);
+      } else {
+        throw new Error('Upload failed');
+      }
     } catch (error: any) {
       console.error('Upload error:', error);
       setMessage(error.message || 'Upload failed');
@@ -229,19 +205,12 @@ export default function SectionBackgroundsManagement() {
     if (!formData.image_url) return;
 
     try {
-      const urlParts = formData.image_url.split('/');
-      const fileName = urlParts[urlParts.length - 1];
-
-      await supabase.storage
-        .from('section-backgrounds')
-        .remove([fileName]);
-
+      await api.deleteFile(formData.image_url);
       setFormData(prev => ({
         ...prev,
         image_url: undefined,
         background_type: 'color',
       }));
-
       setMessage('File removed successfully');
     } catch (error: any) {
       console.error('Remove error:', error);
@@ -259,33 +228,27 @@ export default function SectionBackgroundsManagement() {
     setMessage('');
 
     try {
-      const { error } = await supabase
-        .from('section_backgrounds')
-        .update({
-          background_type: formData.background_type,
-          background_value: formData.background_value,
-          image_url: formData.image_url,
-          background_overlay_color: formData.background_overlay_color,
-          background_overlay_opacity: formData.background_overlay_opacity,
-          background_position: formData.background_position,
-          background_size: formData.background_size,
-          background_repeat: formData.background_repeat,
-          background_attachment: formData.background_attachment,
-          background_position_left: formData.background_position_left || 0,
-          background_position_right: formData.background_position_right || 0,
-          background_position_top: formData.background_position_top || 0,
-          background_position_bottom: formData.background_position_bottom || 0,
-          video_loop: formData.video_loop,
-          video_muted: formData.video_muted,
-          video_autoplay: formData.video_autoplay,
-          video_width_percentage: formData.video_width_percentage,
-          video_horizontal_align: formData.video_horizontal_align,
-          enabled: formData.enabled,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('section_name', selectedSection);
-
-      if (error) throw error;
+      await api.updateSectionBackground(selectedSection, {
+        background_type: formData.background_type!,
+        background_value: formData.background_value!,
+        image_url: formData.image_url,
+        background_overlay_color: formData.background_overlay_color!,
+        background_overlay_opacity: formData.background_overlay_opacity!,
+        background_position: formData.background_position!,
+        background_size: formData.background_size!,
+        background_repeat: formData.background_repeat!,
+        background_attachment: formData.background_attachment!,
+        background_position_left: formData.background_position_left || 0,
+        background_position_right: formData.background_position_right || 0,
+        background_position_top: formData.background_position_top || 0,
+        background_position_bottom: formData.background_position_bottom || 0,
+        video_loop: formData.video_loop!,
+        video_muted: formData.video_muted!,
+        video_autoplay: formData.video_autoplay!,
+        video_width_percentage: formData.video_width_percentage!,
+        video_horizontal_align: formData.video_horizontal_align!,
+        enabled: formData.enabled!,
+      });
 
       await fetchBackgrounds();
       setMessage('Background settings saved successfully!');

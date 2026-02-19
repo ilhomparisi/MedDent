@@ -13,6 +13,8 @@ import miscRoutes from './routes/misc.js';
 import uploadRoutes from './routes/upload.js';
 import servicesRoutes from './routes/services.js';
 import sectionBackgroundsRoutes from './routes/sectionBackgrounds.js';
+import finalCTARoutes from './routes/finalCTA.js';
+import appointmentsRoutes from './routes/appointments.js';
 
 // Load environment variables
 dotenv.config();
@@ -39,8 +41,21 @@ if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB and optionally seed
+connectDB().then(async () => {
+  // Run seed if database is empty (only in development or if explicitly enabled)
+  if (process.env.RUN_SEED_ON_START === 'true' || process.env.NODE_ENV === 'development') {
+    try {
+      const seed = await import('./utils/seed.js');
+      await seed.default();
+    } catch (error) {
+      console.error('⚠️  Seeding skipped or failed:', error.message);
+    }
+  }
+}).catch((error) => {
+  console.error('❌ Failed to connect to database:', error);
+  process.exit(1);
+});
 
 // Middleware
 app.use(cors({
@@ -65,6 +80,8 @@ app.use('/api/reviews', reviewsRoutes);
 app.use('/api/faqs', faqsRoutes);
 app.use('/api/services', servicesRoutes);
 app.use('/api/section-backgrounds', sectionBackgroundsRoutes);
+app.use('/api/final-cta', finalCTARoutes);
+app.use('/api/appointments', appointmentsRoutes);
 app.use('/api', miscRoutes);
 app.use('/api/upload', uploadRoutes);
 

@@ -1,7 +1,18 @@
 import { useState, useEffect } from 'react';
-import { supabase, Review } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { uploadReviewImage, deleteReviewImage } from '../../lib/imageUpload';
 import { Upload, Trash2, Image as ImageIcon } from 'lucide-react';
+
+interface Review {
+  _id?: string;
+  id?: string;
+  patient_name: string;
+  rating: number;
+  review_text: string;
+  image_url: string | null;
+  is_approved: boolean;
+  created_at: string;
+}
 
 export default function ResultsManagement() {
   const [resultImages, setResultImages] = useState<Review[]>([]);
@@ -33,15 +44,12 @@ export default function ResultsManagement() {
 
   const fetchResultImages = async () => {
     try {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('*')
-        .eq('is_approved', true)
-        .not('image_url', 'is', null)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setResultImages(data || []);
+      const data = await api.getReviews();
+      const filtered = data
+        .filter((r: any) => r.is_approved && r.image_url)
+        .map((r: any) => ({ ...r, id: r._id || r.id }))
+        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setResultImages(filtered);
     } catch (error) {
       console.error('Error fetching result images:', error);
       setMessage('Rasmlarni yuklashda xatolik yuz berdi');
@@ -52,25 +60,14 @@ export default function ResultsManagement() {
 
   const fetchSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', [
-          'results_cta_text', 'results_cta_text_size', 'results_cta_text_weight', 'results_cta_text_align',
-          'results_button_text', 'results_button_text_size_desktop', 'results_button_text_size_mobile',
-          'results_button_url', 'results_button_enabled',
-          'results_subtext', 'results_subtext_size', 'results_subtext_align',
-          'results_shadow_opacity', 'results_solid_blue_width', 'results_shadow_width'
-        ]);
-
-      if (error) throw error;
-
+      const settings = await api.getSiteSettings();
       const settingsObj: any = {};
-      data?.forEach((setting) => {
-        const key = setting.key.replace('results_', '');
-        settingsObj[key] = setting.value;
+      settings.forEach((setting: any) => {
+        if (setting.key.startsWith('results_')) {
+          const key = setting.key.replace('results_', '');
+          settingsObj[key] = setting.value;
+        }
       });
-
       setSettings(prev => ({ ...prev, ...settingsObj }));
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -79,13 +76,7 @@ export default function ResultsManagement() {
 
   const updateSetting = async (key: string, value: any) => {
     try {
-      const { error } = await supabase
-        .from('site_settings')
-        .update({ value })
-        .eq('key', `results_${key}`);
-
-      if (error) throw error;
-
+      await api.updateSiteSetting(`results_${key}`, value);
       setSettings(prev => ({ ...prev, [key]: value }));
       setMessage('Sozlamalar saqlandi!');
       setTimeout(() => setMessage(''), 2000);
@@ -104,26 +95,23 @@ export default function ResultsManagement() {
     let errorCount = 0;
 
     for (const file of Array.from(files)) {
-      const result = await uploadReviewImage(file);
+      try {
+        const result = await uploadReviewImage(file);
 
-      if (result.success && result.url) {
-        const { error } = await supabase.from('reviews').insert([
-          {
+        if (result.success && result.url) {
+          await api.createReview({
             patient_name: 'Bemor',
             rating: 5,
             review_text: 'Natija rasmi',
             is_approved: true,
             image_url: result.url,
-          },
-        ]);
-
-        if (error) {
-          console.error('Error saving image:', error);
-          errorCount++;
-        } else {
+          });
           successCount++;
+        } else {
+          errorCount++;
         }
-      } else {
+      } catch (error) {
+        console.error('Error saving image:', error);
         errorCount++;
       }
     }
@@ -154,12 +142,7 @@ export default function ResultsManagement() {
         await deleteReviewImage(result.image_url);
       }
 
-      const { error } = await supabase
-        .from('reviews')
-        .delete()
-        .eq('id', result.id);
-
-      if (error) throw error;
+      await api.deleteReview(result.id!);
 
       setMessage('Rasm muvaffaqiyatli o\'chirildi!');
       fetchResultImages();

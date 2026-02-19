@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, ChevronUp, ChevronDown, Save } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 
 interface FAQItem {
-  id: string;
+  _id?: string;
+  id?: string;
   question: string;
   question_uz?: string;
   question_ru?: string;
@@ -36,13 +37,8 @@ export default function FAQManagement() {
 
   const fetchFAQItems = async () => {
     try {
-      const { data, error } = await supabase
-        .from('faq_items')
-        .select('*')
-        .order('display_order', { ascending: true });
-
-      if (error) throw error;
-      setFaqItems(data || []);
+      const data = await api.getFaqs();
+      setFaqItems(data.map((item: any) => ({ ...item, id: item._id || item.id })));
     } catch (error) {
       console.error('Error fetching FAQ items:', error);
     } finally {
@@ -83,25 +79,16 @@ export default function FAQManagement() {
     try {
       if (editingId === 'new') {
         const maxOrder = faqItems.reduce((max, item) => Math.max(max, item.display_order), 0);
-        const { error } = await supabase
-          .from('faq_items')
-          .insert([{
-            ...editForm,
-            display_order: maxOrder + 1,
-          }]);
-
-        if (error) throw error;
+        await api.createFaq({
+          ...editForm,
+          display_order: maxOrder + 1,
+        });
       } else {
-        const { error } = await supabase
-          .from('faq_items')
-          .update(editForm)
-          .eq('id', editingId);
-
-        if (error) throw error;
+        await api.updateFaq(editingId!, editForm);
       }
 
       setEditingId(null);
-      setEditForm({ question: '', answer: '', is_active: true });
+      setEditForm({ question: '', answer: '', is_active: true, question_uz: '', question_ru: '', answer_uz: '', answer_ru: '' });
       await fetchFAQItems();
     } catch (error) {
       console.error('Error saving FAQ item:', error);
@@ -115,12 +102,7 @@ export default function FAQManagement() {
     if (!confirm('Are you sure you want to delete this FAQ item?')) return;
 
     try {
-      const { error } = await supabase
-        .from('faq_items')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await api.deleteFaq(id);
       await fetchFAQItems();
     } catch (error) {
       console.error('Error deleting FAQ item:', error);
@@ -135,16 +117,8 @@ export default function FAQManagement() {
     const prevItem = faqItems[currentIndex - 1];
 
     try {
-      await supabase
-        .from('faq_items')
-        .update({ display_order: prevItem.display_order })
-        .eq('id', item.id);
-
-      await supabase
-        .from('faq_items')
-        .update({ display_order: item.display_order })
-        .eq('id', prevItem.id);
-
+      await api.updateFaq(item.id!, { display_order: prevItem.display_order });
+      await api.updateFaq(prevItem.id!, { display_order: item.display_order });
       await fetchFAQItems();
     } catch (error) {
       console.error('Error reordering FAQ items:', error);
@@ -158,16 +132,8 @@ export default function FAQManagement() {
     const nextItem = faqItems[currentIndex + 1];
 
     try {
-      await supabase
-        .from('faq_items')
-        .update({ display_order: nextItem.display_order })
-        .eq('id', item.id);
-
-      await supabase
-        .from('faq_items')
-        .update({ display_order: item.display_order })
-        .eq('id', nextItem.id);
-
+      await api.updateFaq(item.id!, { display_order: nextItem.display_order });
+      await api.updateFaq(nextItem.id!, { display_order: item.display_order });
       await fetchFAQItems();
     } catch (error) {
       console.error('Error reordering FAQ items:', error);

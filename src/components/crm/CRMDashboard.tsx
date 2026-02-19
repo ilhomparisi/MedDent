@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { FileText, Link2, MousePointer, TrendingUp, Calendar, Clock } from 'lucide-react';
 
 interface DashboardStats {
@@ -42,53 +42,61 @@ export default function CRMDashboard() {
   }, []);
 
   const loadDashboardData = async () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const weekAgo = new Date(today);
-    weekAgo.setDate(weekAgo.getDate() - 7);
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const weekAgo = new Date(today);
+      weekAgo.setDate(weekAgo.getDate() - 7);
 
-    const [
-      { count: totalSubmissions },
-      { count: todaySubmissions },
-      { count: weekSubmissions },
-      { data: campaigns },
-      { data: recentData },
-      { data: allSubmissions }
-    ] = await Promise.all([
-      supabase.from('consultation_forms').select('*', { count: 'exact', head: true }),
-      supabase.from('consultation_forms').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString()),
-      supabase.from('consultation_forms').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo.toISOString()),
-      supabase.from('campaign_links').select('id, is_active, click_count').eq('is_active', true),
-      supabase.from('consultation_forms').select('id, full_name, phone, source, created_at').order('created_at', { ascending: false }).limit(5),
-      supabase.from('consultation_forms').select('source')
-    ]);
+      const [allForms, campaigns] = await Promise.all([
+        api.getConsultationForms(),
+        api.getCampaignLinks(),
+      ]);
 
-    const activeCampaigns = campaigns?.length || 0;
-    const totalClicks = campaigns?.reduce((sum, c) => sum + (c.click_count || 0), 0) || 0;
-    const conversionRate = totalClicks > 0 ? ((totalSubmissions || 0) / totalClicks * 100) : 0;
+      const totalSubmissions = allForms.length;
+      const todaySubmissions = allForms.filter((f: any) => new Date(f.created_at) >= today).length;
+      const weekSubmissions = allForms.filter((f: any) => new Date(f.created_at) >= weekAgo).length;
+      const activeCampaigns = campaigns.filter((c: any) => c.is_active).length;
+      const totalClicks = campaigns.reduce((sum: number, c: any) => sum + (c.click_count || 0), 0);
+      const conversionRate = totalClicks > 0 ? ((totalSubmissions / totalClicks) * 100) : 0;
 
-    setStats({
-      totalSubmissions: totalSubmissions || 0,
-      todaySubmissions: todaySubmissions || 0,
-      weekSubmissions: weekSubmissions || 0,
-      activeCampaigns,
-      totalClicks,
-      conversionRate: Math.round(conversionRate * 10) / 10,
-    });
+      setStats({
+        totalSubmissions,
+        todaySubmissions,
+        weekSubmissions,
+        activeCampaigns,
+        totalClicks,
+        conversionRate: Math.round(conversionRate * 10) / 10,
+      });
 
-    setRecentSubmissions(recentData || []);
+      const recentData = allForms
+        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 5)
+        .map((f: any) => ({
+          id: f._id || f.id,
+          full_name: f.full_name,
+          phone: f.phone,
+          source: f.source || 'Direct Visit',
+          created_at: f.created_at,
+        }));
 
-    const sourceCounts: Record<string, number> = {};
-    allSubmissions?.forEach((s) => {
-      const src = s.source || 'Direct Visit';
-      sourceCounts[src] = (sourceCounts[src] || 0) + 1;
-    });
-    const sourceStatsArray = Object.entries(sourceCounts)
-      .map(([source, count]) => ({ source, count }))
-      .sort((a, b) => b.count - a.count);
-    setSourceStats(sourceStatsArray);
+      setRecentSubmissions(recentData);
 
-    setLoading(false);
+      const sourceCounts: Record<string, number> = {};
+      allForms.forEach((s: any) => {
+        const src = s.source || 'Direct Visit';
+        sourceCounts[src] = (sourceCounts[src] || 0) + 1;
+      });
+      const sourceStatsArray = Object.entries(sourceCounts)
+        .map(([source, count]) => ({ source, count }))
+        .sort((a, b) => b.count - a.count);
+      setSourceStats(sourceStatsArray);
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      setLoading(false);
+    }
   };
 
   const formatDate = (dateStr: string) => {

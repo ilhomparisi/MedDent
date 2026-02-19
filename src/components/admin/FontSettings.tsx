@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 
 interface FontOption {
   name: string;
@@ -82,21 +82,14 @@ export default function FontSettings() {
 
   const loadFontSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'font_family')
-        .maybeSingle();
+      const fontValue = await api.getSiteSetting('font_family');
+      if (fontValue) {
+        const font = String(fontValue).replace(/^"|"$/g, '');
+        setSelectedFont(font);
 
-      if (error) throw error;
-
-      if (data?.value) {
-        const fontValue = String(data.value).replace(/^"|"$/g, '');
-        setSelectedFont(fontValue);
-
-        const matchingFont = FONT_OPTIONS.find(f => f.value === fontValue);
+        const matchingFont = FONT_OPTIONS.find(f => f.value === font);
         if (!matchingFont) {
-          setCustomFont(fontValue);
+          setCustomFont(font);
         }
       }
     } catch (error) {
@@ -110,16 +103,7 @@ export default function FontSettings() {
     setSaving(true);
     try {
       const fontToSave = customFont.trim() || selectedFont;
-
-      const { error } = await supabase
-        .from('site_settings')
-        .update({
-          value: `"${fontToSave}"`,
-          updated_at: new Date().toISOString()
-        })
-        .eq('key', 'font_family');
-
-      if (error) throw error;
+      await api.updateSiteSetting('font_family', `"${fontToSave}"`);
 
       alert('Font settings saved successfully! The page will reload to apply changes.');
       window.location.reload();

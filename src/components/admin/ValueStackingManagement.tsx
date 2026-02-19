@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Save, RefreshCw } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 
 interface ValueStacking {
-  id: string;
+  _id?: string;
+  id?: string;
   main_heading: string;
   main_heading_uz: string;
   main_heading_ru: string;
@@ -120,14 +121,11 @@ export default function ValueStackingManagement() {
 
   const fetchData = async () => {
     try {
-      const { data: result, error } = await supabase
-        .from('value_stacking')
-        .select('*')
-        .maybeSingle();
-
-      if (error) throw error;
+      const items = await api.getValueItems(false);
+      // ValueStacking is a single record, get the first active one or create default
+      const result = items.find((item: any) => item.is_active) || items[0] || null;
       if (result) {
-        setData(result);
+        setData({ ...result, id: result._id || result.id });
       }
     } catch (error) {
       console.error('Error fetching value stacking:', error);
@@ -139,17 +137,15 @@ export default function ValueStackingManagement() {
     setMessage('');
 
     try {
-      const { error } = await supabase
-        .from('value_stacking')
-        .upsert({
-          ...data,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (error) throw error;
+      if (data.id) {
+        await api.updateValueItem(data.id, data);
+      } else {
+        await api.createValueItem(data);
+      }
 
       setMessage('Muvaffaqiyatli saqlandi!');
       setTimeout(() => setMessage(''), 3000);
+      await fetchData();
     } catch (error) {
       console.error('Error saving value stacking:', error);
       setMessage('Xatolik yuz berdi!');

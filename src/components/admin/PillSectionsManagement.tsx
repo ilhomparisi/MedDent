@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { Save, AlertCircle, CheckCircle, Upload, X, Smartphone, Monitor } from 'lucide-react';
 
 interface PillSection {
-  id: string;
+  _id?: string;
+  id?: string;
   section_type: 'white' | 'black';
   main_heading: string;
   subheading: string;
@@ -60,18 +61,13 @@ export default function PillSectionsManagement() {
 
   const fetchSections = async () => {
     try {
-      const { data, error } = await supabase
-        .from('pill_sections')
-        .select('*')
-        .order('display_order', { ascending: true });
+      const data = await api.getPillSections();
+      
+      const whiteSec = data.find((s: any) => s.section_type === 'white') || null;
+      const blackSec = data.find((s: any) => s.section_type === 'black') || null;
 
-      if (error) throw error;
-
-      const whiteSec = data?.find((s) => s.section_type === 'white') || null;
-      const blackSec = data?.find((s) => s.section_type === 'black') || null;
-
-      setWhiteSection(whiteSec);
-      setBlackSection(blackSec);
+      setWhiteSection(whiteSec ? { ...whiteSec, id: whiteSec._id || whiteSec.id } : null);
+      setBlackSection(blackSec ? { ...blackSec, id: blackSec._id || blackSec.id } : null);
     } catch (error) {
       console.error('Error fetching sections:', error);
       showMessage('error', 'Xatolik yuz berdi');
@@ -88,59 +84,55 @@ export default function PillSectionsManagement() {
   const handleSave = async (section: PillSection) => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('pill_sections')
-        .update({
-          main_heading: section.main_heading,
-          main_heading_uz: section.main_heading,
-          subheading: section.subheading,
-          subheading_uz: section.subheading,
-          blue_pill_title: section.blue_pill_title,
-          blue_pill_title_uz: section.blue_pill_title,
-          blue_pill_description: section.blue_pill_description,
-          blue_pill_description_uz: section.blue_pill_description,
-          blue_pill_details: section.blue_pill_details,
-          blue_pill_details_uz: section.blue_pill_details,
-          red_pill_title: section.red_pill_title,
-          red_pill_title_uz: section.red_pill_title,
-          red_pill_description: section.red_pill_description,
-          red_pill_description_uz: section.red_pill_description,
-          red_pill_details: section.red_pill_details,
-          red_pill_details_uz: section.red_pill_details,
-          button_text: section.button_text,
-          button_text_uz: section.button_text,
-          heading_align: section.heading_align,
-          subheading_align: section.subheading_align,
-          main_heading_size: section.main_heading_size,
-          subheading_size: section.subheading_size,
-          blue_pill_title_size: section.blue_pill_title_size,
-          blue_pill_description_size: section.blue_pill_description_size,
-          blue_pill_details_size: section.blue_pill_details_size,
-          red_pill_title_size: section.red_pill_title_size,
-          red_pill_description_size: section.red_pill_description_size,
-          red_pill_details_size: section.red_pill_details_size,
-          button_text_size: section.button_text_size,
-          main_heading_size_mobile: section.main_heading_size_mobile,
-          subheading_size_mobile: section.subheading_size_mobile,
-          blue_pill_title_size_mobile: section.blue_pill_title_size_mobile,
-          blue_pill_description_size_mobile: section.blue_pill_description_size_mobile,
-          blue_pill_details_size_mobile: section.blue_pill_details_size_mobile,
-          red_pill_title_size_mobile: section.red_pill_title_size_mobile,
-          red_pill_description_size_mobile: section.red_pill_description_size_mobile,
-          red_pill_details_size_mobile: section.red_pill_details_size_mobile,
-          button_text_size_mobile: section.button_text_size_mobile,
-          button_padding_x: section.button_padding_x,
-          button_padding_y: section.button_padding_y,
-          button_max_width: section.button_max_width,
-          matrix_image_max_width: section.matrix_image_max_width,
-          matrix_image_url: section.matrix_image_url,
-          pill_spacing_mobile: section.pill_spacing_mobile,
-          pill_spacing_desktop: section.pill_spacing_desktop,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', section.id);
+      const updateData = {
+        main_heading: section.main_heading,
+        main_heading_uz: section.main_heading,
+        subheading: section.subheading,
+        subheading_uz: section.subheading,
+        blue_pill_title: section.blue_pill_title,
+        blue_pill_title_uz: section.blue_pill_title,
+        blue_pill_description: section.blue_pill_description,
+        blue_pill_description_uz: section.blue_pill_description,
+        blue_pill_details: section.blue_pill_details,
+        blue_pill_details_uz: section.blue_pill_details,
+        red_pill_title: section.red_pill_title,
+        red_pill_title_uz: section.red_pill_title,
+        red_pill_description: section.red_pill_description,
+        red_pill_description_uz: section.red_pill_description,
+        red_pill_details: section.red_pill_details,
+        red_pill_details_uz: section.red_pill_details,
+        button_text: section.button_text,
+        button_text_uz: section.button_text,
+        heading_align: section.heading_align,
+        subheading_align: section.subheading_align,
+        main_heading_size: section.main_heading_size,
+        subheading_size: section.subheading_size,
+        blue_pill_title_size: section.blue_pill_title_size,
+        blue_pill_description_size: section.blue_pill_description_size,
+        blue_pill_details_size: section.blue_pill_details_size,
+        red_pill_title_size: section.red_pill_title_size,
+        red_pill_description_size: section.red_pill_description_size,
+        red_pill_details_size: section.red_pill_details_size,
+        button_text_size: section.button_text_size,
+        main_heading_size_mobile: section.main_heading_size_mobile,
+        subheading_size_mobile: section.subheading_size_mobile,
+        blue_pill_title_size_mobile: section.blue_pill_title_size_mobile,
+        blue_pill_description_size_mobile: section.blue_pill_description_size_mobile,
+        blue_pill_details_size_mobile: section.blue_pill_details_size_mobile,
+        red_pill_title_size_mobile: section.red_pill_title_size_mobile,
+        red_pill_description_size_mobile: section.red_pill_description_size_mobile,
+        red_pill_details_size_mobile: section.red_pill_details_size_mobile,
+        button_text_size_mobile: section.button_text_size_mobile,
+        button_padding_x: section.button_padding_x,
+        button_padding_y: section.button_padding_y,
+        button_max_width: section.button_max_width,
+        matrix_image_max_width: section.matrix_image_max_width,
+        matrix_image_url: section.matrix_image_url,
+        pill_spacing_mobile: section.pill_spacing_mobile,
+        pill_spacing_desktop: section.pill_spacing_desktop,
+      };
 
-      if (error) throw error;
+      await api.updatePillSection(section.id!, updateData);
 
       showMessage('success', 'Muvaffaqiyatli saqlandi!');
       await fetchSections();
@@ -170,24 +162,11 @@ export default function PillSectionsManagement() {
       return;
     }
 
-    setUploadingImage(section.id);
+    setUploadingImage(section.id!);
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `matrix-${section.section_type}-${Date.now()}.${fileExt}`;
-      const filePath = `pill-sections/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('section-images')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('section-images')
-        .getPublicUrl(filePath);
-
-      setSection({ ...section, matrix_image_url: publicUrl });
+      const result = await api.uploadFile(file, 'pill-section-images');
+      setSection({ ...section, matrix_image_url: result.url });
       showMessage('success', 'Rasm muvaffaqiyatli yuklandi!');
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -204,13 +183,7 @@ export default function PillSectionsManagement() {
     if (!section.matrix_image_url) return;
 
     try {
-      const filePath = section.matrix_image_url.split('/pill-sections/')[1];
-      if (filePath) {
-        await supabase.storage
-          .from('section-images')
-          .remove([`pill-sections/${filePath}`]);
-      }
-
+      await api.deleteFile(section.matrix_image_url);
       setSection({ ...section, matrix_image_url: null });
       showMessage('success', 'Rasm o\'chirildi');
     } catch (error) {

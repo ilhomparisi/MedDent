@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState, forwardRef } from 'react';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
+import { useConfiguration } from '../contexts/ConfigurationContext';
 
 interface SectionWrapperProps {
   sectionName: string;
@@ -33,24 +34,24 @@ interface SectionBackground {
 }
 
 const SectionWrapper = forwardRef<HTMLDivElement, SectionWrapperProps>(({ sectionName, children, className = '', style = {}, heroImageWidth, heroImageHeight }, ref) => {
+  const { getConfig } = useConfiguration();
   const [background, setBackground] = useState<SectionBackground | null>(null);
   const [loading, setLoading] = useState(true);
-  const [edgeBlendSettings, setEdgeBlendSettings] = useState({
-    enabled: false,
-    width: 100,
-    side: 'left',
-  });
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [heroOvalFrame, setHeroOvalFrame] = useState(true);
-  const [heroImageDimensions, setHeroImageDimensions] = useState({ width: 236, height: 436 });
+  
+  const edgeBlendSettings = {
+    enabled: getConfig('edge_blend_enabled', false),
+    width: parseFloat(getConfig('edge_blend_width', '100')),
+    side: getConfig('edge_blend_side', 'left'),
+  };
+  const heroOvalFrame = getConfig('hero_oval_frame', true);
+  const heroImageDimensions = {
+    width: parseFloat(getConfig('hero_image_outer_width', '236')),
+    height: parseFloat(getConfig('hero_image_outer_height', '436')),
+  };
 
   useEffect(() => {
     fetchBackground();
-    fetchEdgeBlendSettings();
-    if (sectionName === 'hero') {
-      fetchHeroOvalFrame();
-      fetchHeroImageDimensions();
-    }
 
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -62,14 +63,7 @@ const SectionWrapper = forwardRef<HTMLDivElement, SectionWrapperProps>(({ sectio
 
   const fetchBackground = async () => {
     try {
-      const { data, error } = await supabase
-        .from('section_backgrounds')
-        .select('*')
-        .eq('section_name', sectionName)
-        .maybeSingle();
-
-      if (error) throw error;
-
+      const data = await api.getSectionBackground(sectionName);
       if (data && data.enabled) {
         setBackground(data);
       } else {
@@ -80,71 +74,6 @@ const SectionWrapper = forwardRef<HTMLDivElement, SectionWrapperProps>(({ sectio
       setBackground(null);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchEdgeBlendSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', ['edge_blend_enabled', 'edge_blend_width', 'edge_blend_side']);
-
-      if (error) throw error;
-
-      const settings: any = {};
-      data?.forEach((setting) => {
-        settings[setting.key] = setting.value;
-      });
-
-      setEdgeBlendSettings({
-        enabled: settings.edge_blend_enabled || false,
-        width: parseInt(settings.edge_blend_width) || 100,
-        side: settings.edge_blend_side || 'left',
-      });
-    } catch (error) {
-      console.error('Error fetching edge blend settings:', error);
-    }
-  };
-
-  const fetchHeroOvalFrame = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'hero_oval_frame')
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data?.value !== undefined) {
-        setHeroOvalFrame(data.value === 'true' || data.value === true);
-      }
-    } catch (error) {
-      console.error('Error fetching hero oval frame setting:', error);
-    }
-  };
-
-  const fetchHeroImageDimensions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', ['hero_image_outer_width', 'hero_image_outer_height']);
-
-      if (error) throw error;
-
-      const dims = { width: 236, height: 436 };
-      data?.forEach((setting) => {
-        if (setting.key === 'hero_image_outer_width') {
-          dims.width = parseInt(setting.value, 10) || 236;
-        } else if (setting.key === 'hero_image_outer_height') {
-          dims.height = parseInt(setting.value, 10) || 436;
-        }
-      });
-      setHeroImageDimensions(dims);
-    } catch (error) {
-      console.error('Error fetching hero image dimensions:', error);
     }
   };
 

@@ -1,8 +1,27 @@
 import { useState, useEffect } from 'react';
 import { X, Calendar, Clock, User, Mail, Phone, MessageSquare } from 'lucide-react';
-import { supabase, Service, Doctor } from '../lib/supabase';
+import { api } from '../lib/api';
 import { translations } from '../lib/translations';
 import { useLanguage } from '../contexts/LanguageContext';
+
+interface Service {
+  _id?: string;
+  id?: string;
+  title: string;
+  title_uz?: string;
+  title_ru?: string;
+  is_active: boolean;
+  display_order?: number;
+}
+
+interface Doctor {
+  _id?: string;
+  id?: string;
+  name: string;
+  name_uz?: string;
+  name_ru?: string;
+  is_active: boolean;
+}
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -44,13 +63,13 @@ export default function BookingModal({ isOpen, onClose, preselectedServiceId }: 
 
   const fetchData = async () => {
     try {
-      const [servicesRes, doctorsRes] = await Promise.all([
-        supabase.from('services').select('*').eq('is_active', true).order('display_order'),
-        supabase.from('doctors').select('*').eq('is_active', true),
+      const [servicesData, doctorsData] = await Promise.all([
+        api.getServices(true),
+        api.getDoctors(true),
       ]);
 
-      if (servicesRes.data) setServices(servicesRes.data);
-      if (doctorsRes.data) setDoctors(doctorsRes.data);
+      setServices(servicesData.map((s: any) => ({ ...s, id: s._id || s.id })));
+      setDoctors(doctorsData.map((d: any) => ({ ...d, id: d._id || d.id })));
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -74,9 +93,7 @@ export default function BookingModal({ isOpen, onClose, preselectedServiceId }: 
         status: 'pending',
       };
 
-      const { error } = await supabase.from('appointments').insert([appointmentData]);
-
-      if (error) throw error;
+      await api.createAppointment(appointmentData);
 
       setSuccess(true);
       setTimeout(() => {

@@ -1,18 +1,20 @@
 import { X, Check, Clock, ArrowRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 
 interface ServiceDetail {
-  id: string;
+  _id?: string;
+  id?: string;
   title: string;
   description: string;
   detailed_description: string;
   price_from: number;
-  duration: number;
+  duration_minutes?: number;
+  duration?: number;
   image_url: string;
-  benefits: string[];
-  process_steps: { title: string; description: string }[];
-  faq: { question: string; answer: string }[];
+  benefits?: string[];
+  process_steps?: { title: string; description: string }[];
+  faq?: { question: string; answer: string }[];
 }
 
 interface ServiceDetailModalProps {
@@ -50,14 +52,8 @@ export default function ServiceDetailModal({
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('services')
-        .select('*')
-        .eq('id', serviceId)
-        .single();
-
-      if (error) throw error;
-      setService(data);
+      const data = await api.getService(serviceId);
+      setService({ ...data, id: data._id || data.id, duration: data.duration_minutes || data.duration });
     } catch (error) {
       console.error('Error fetching service details:', error);
     } finally {
