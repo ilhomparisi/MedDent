@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 interface ApiError {
   error: string;
@@ -203,7 +203,8 @@ class ApiClient {
   // Doctors
   async getDoctors(activeOnly = false) {
     const params = activeOnly ? '?active_only=true' : '';
-    return this.request<{ data: any[] }>(`/doctors${params}`);
+    const response = await this.request<{ data: any[] }>(`/doctors${params}`);
+    return response.data ?? response;
   }
 
   async getDoctor(id: string) {
@@ -238,7 +239,8 @@ class ApiClient {
         return acc;
       }, {} as Record<string, string>)
     ).toString();
-    return this.request<{ data: any[] }>(`/reviews${queryString ? '?' + queryString : ''}`);
+    const response = await this.request<{ data: any[] }>(`/reviews${queryString ? '?' + queryString : ''}`);
+    return response.data ?? response;
   }
 
   async createReview(data: any) {
@@ -264,7 +266,8 @@ class ApiClient {
   // FAQs
   async getFAQs(activeOnly = false) {
     const params = activeOnly ? '?active_only=true' : '';
-    return this.request<{ data: any[] }>(`/faqs${params}`);
+    const response = await this.request<{ data: any[] }>(`/faqs${params}`);
+    return response.data ?? response;
   }
 
   async createFAQ(data: any) {
@@ -297,7 +300,8 @@ class ApiClient {
   // Pill Sections
   async getPillSections(activeOnly = false) {
     const params = activeOnly ? '?active_only=true' : '';
-    return this.request<{ data: any[] }>(`/pill-sections${params}`);
+    const response = await this.request<{ data: any[] }>(`/pill-sections${params}`);
+    return response.data ?? response;
   }
 
   async createPillSection(data: any) {
@@ -323,7 +327,8 @@ class ApiClient {
   // Value Stacking
   async getValueItems(activeOnly = false) {
     const params = activeOnly ? '?active_only=true' : '';
-    return this.request<{ data: any[] }>(`/value-items${params}`);
+    const response = await this.request<{ data: any[] }>(`/value-items${params}`);
+    return response.data ?? response;
   }
 
   async createValueItem(data: any) {
@@ -577,6 +582,36 @@ class ApiClient {
       body: JSON.stringify({ username, password }),
     });
   }
+
+  // --- Aliases for consistent lowercase/camelCase naming used across components ---
+
+  // FAQ aliases
+  async getFaqs(activeOnly = false) { return this.getFAQs(activeOnly); }
+  async createFaq(data: any) { return this.createFAQ(data); }
+  async updateFaq(id: string, data: any) { return this.updateFAQ(id, data); }
+  async deleteFaq(id: string) { return this.deleteFAQ(id); }
+  async updateFaqOrder(id: string, display_order: number) { return this.updateFAQOrder(id, display_order); }
+
+  // CRM user aliases
+  async getCrmUsers() { return this.getCRMUsers(); }
+  async createCrmUser(data: any) { return this.createCRMUser(data); }
+  async updateCrmUser(id: string, data: any) { return this.updateCRMUser(id, data); }
+  async deleteCrmUser(id: string) { return this.deleteCRMUser(id); }
+
+  // Campaign link aliases (maps to campaign methods)
+  async getCampaignLinks() { return this.getCampaigns(); }
+  async createCampaignLink(data: any) { return this.createCampaign(data); }
+  async updateCampaignLink(id: string, data: any) { return this.updateCampaign(id, data); }
+  async deleteCampaignLink(id: string) { return this.deleteCampaign(id); }
+
+  // Site settings aliases
+  async getSiteSettings() { return this.getAllSettings(); }
+  async getSiteSetting(key: string) { return this.getSetting(key); }
+  async updateSiteSetting(key: string, value: any) { return this.upsertSetting(key, value); }
+
+  // File upload aliases
+  async uploadFile(file: File, type: string = 'general') { return this.uploadImage(file, type); }
+  async deleteFile(url: string) { return this.deleteImage(url); }
 }
 
 export const api = new ApiClient(API_BASE_URL);

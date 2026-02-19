@@ -62,7 +62,7 @@
 
 ## 📝 Notes
 
-- Backend runs on port 3001 by default
+- Backend runs on port 3000 by default
 - Frontend API URL can be configured via `VITE_API_URL` environment variable
 - Admin user is seeded with credentials from `.env` file
 - JWT tokens are stored in localStorage as `admin_token`

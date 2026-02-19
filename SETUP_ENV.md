@@ -12,7 +12,7 @@ MONGODB_URI=mongodb://localhost:27017/meddent
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production-min-32-chars
 
 # Server Configuration
-PORT=3001
+PORT=3000
 NODE_ENV=development
 FRONTEND_URL=http://localhost:5173
 
@@ -30,7 +30,7 @@ Create a `.env` file in the root directory with:
 
 ```env
 # Frontend API URL
-VITE_API_URL=http://localhost:3001/api
+VITE_API_URL=http://localhost:3000/api
 ```
 
 ## Quick Setup

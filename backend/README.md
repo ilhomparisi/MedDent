@@ -37,7 +37,7 @@ This will create the initial admin user with credentials from `.env`.
 npm run dev
 ```
 
-The API will be available at `http://localhost:3001`
+The API will be available at `http://localhost:3000`
 
 ## API Endpoints
 

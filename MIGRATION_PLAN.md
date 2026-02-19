@@ -86,7 +86,7 @@ MONGODB_URI=mongodb://localhost:27017/meddent
 # MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/meddent?retryWrites=true&w=majority
 
 # Server
-PORT=3001
+PORT=3000
 NODE_ENV=development
 
 # JWT Secret
@@ -201,7 +201,7 @@ export const authenticateAdmin = async (req, res, next) => {
 ### 3.1 API Client Setup
 ```typescript
 // src/lib/api.ts
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 class ApiClient {
   private baseURL: string;

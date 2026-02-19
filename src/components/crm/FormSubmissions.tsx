@@ -184,6 +184,10 @@ export default function FormSubmissions() {
     link.href = URL.createObjectURL(blob);
     link.download = `arizalar_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
+    } catch (error) {
+      console.error('Error exporting to CSV:', error);
+      alert('CSV eksport qilishda xatolik yuz berdi');
+    }
   };
 
   const exportToExcel = async () => {

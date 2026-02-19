@@ -1,7 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import connectDB from './config/database.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import authRoutes from './routes/auth.js';
 import consultationFormsRoutes from './routes/consultationForms.js';
 import settingsRoutes from './routes/settings.js';
@@ -39,7 +44,7 @@ if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
 }
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 // Connect to MongoDB and optionally seed
 connectDB().then(async () => {
@@ -59,7 +64,15 @@ connectDB().then(async () => {
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    // Allow any localhost port in development
+    if (origin.match(/^http:\/\/localhost:\d+$/) || origin === process.env.FRONTEND_URL) {
+      return callback(null, true);
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -85,8 +98,9 @@ app.use('/api/appointments', appointmentsRoutes);
 app.use('/api', miscRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// Serve uploaded files
-app.use('/uploads', express.static('uploads'));
+// Serve uploaded files (absolute path from backend root)
+const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
+app.use('/uploads', express.static(uploadDir));
 
 // 404 handler
 app.use((req, res) => {

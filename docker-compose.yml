@@ -24,11 +24,11 @@ services:
     container_name: meddent-backend
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "3000:3000"
     environment:
       MONGODB_URI: mongodb://mongodb:27017/meddent
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production-min-32-chars}
-      PORT: 3001
+      PORT: 3000
       NODE_ENV: production
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       ADMIN_SEED_EMAIL: ${ADMIN_SEED_EMAIL:-admin@meddent.uz}
@@ -40,7 +40,7 @@ services:
       mongodb:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
       timeout: 3s
       retries: 3
@@ -54,7 +54,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_API_URL: http://localhost:3001/api
+      VITE_API_URL: http://localhost:3000/api
     depends_on:
       - backend
 

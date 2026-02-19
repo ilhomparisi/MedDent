@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ConfigurationProvider, useConfigValue } from './contexts/ConfigurationContext';
@@ -33,8 +33,14 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/adminlogin" element={<AdminLogin />} />
               <Route path="/adminpanel" element={<AdminPanel />} />
+              {/* Friendly /admin aliases */}
+              <Route path="/admin" element={<Navigate to="/adminlogin" replace />} />
+              <Route path="/admin/login" element={<Navigate to="/adminlogin" replace />} />
+              <Route path="/admin/panel" element={<Navigate to="/adminpanel" replace />} />
               <Route path="/crm/login" element={<CRMLogin />} />
               <Route path="/crm" element={<CRMPage />} />
+              {/* Catch-all: redirect unknown paths to home */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
         </CRMAuthProvider>

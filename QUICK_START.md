@@ -66,5 +66,5 @@ JWT_SECRET=K8j2mN9pQ5rT7vW3xY6zA1bC4dE8fG0hI2jK4lM6nO8pQ0rS2tU4vW6xY8zA0=
 
 ### .env (root)
 ```env
-VITE_API_URL=http://localhost:3001/api
+VITE_API_URL=http://localhost:3000/api
 ```

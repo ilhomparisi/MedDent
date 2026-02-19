@@ -18,7 +18,7 @@ Edit `backend/.env`:
 ```env
 MONGODB_URI=mongodb://localhost:27017/meddent
 JWT_SECRET=your-super-secret-jwt-key-change-this-min-32-chars
-PORT=3001
+PORT=3000
 NODE_ENV=development
 FRONTEND_URL=http://localhost:5173
 ADMIN_SEED_EMAIL=admin@meddent.uz
@@ -33,7 +33,7 @@ cp .env.example .env
 
 Edit `.env`:
 ```env
-VITE_API_URL=http://localhost:3001/api
+VITE_API_URL=http://localhost:3000/api
 ```
 
 ### 2. Start MongoDB
@@ -132,7 +132,7 @@ docker-compose down -v
 ```bash
 cd backend
 docker build -t meddent-backend .
-docker run -p 3001:3001 --env-file .env meddent-backend
+docker run -p 3000:3000 --env-file .env meddent-backend
 ```
 
 **Frontend only:**
@@ -187,7 +187,7 @@ npm run seed
 
 ### Frontend can't connect to API
 - Verify `VITE_API_URL` in `.env` matches backend URL
-- Check backend is running on correct port (default: 3001)
+- Check backend is running on correct port (default: 3000)
 - Check CORS settings in backend (FRONTEND_URL)
 - Check browser console for CORS errors
 

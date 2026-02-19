@@ -24,20 +24,20 @@ import {
 
 const router = express.Router();
 
-// Pill Sections
-router.get('/pill-sections', authenticateAdmin, getAllPillSections);
+// Pill Sections - public read, protected write
+router.get('/pill-sections', getAllPillSections);
 router.post('/pill-sections', authenticateAdmin, createPillSection);
 router.put('/pill-sections/:id', authenticateAdmin, updatePillSection);
 router.delete('/pill-sections/:id', authenticateAdmin, deletePillSection);
 
-// Value Stacking
-router.get('/value-items', authenticateAdmin, getAllValueItems);
+// Value Stacking - public read, protected write
+router.get('/value-items', getAllValueItems);
 router.post('/value-items', authenticateAdmin, createValueItem);
 router.put('/value-items/:id', authenticateAdmin, updateValueItem);
 router.delete('/value-items/:id', authenticateAdmin, deleteValueItem);
 
-// Campaigns
-router.get('/campaigns', authenticateAdmin, getAllCampaigns);
+// Campaigns - public read, protected write
+router.get('/campaigns', getAllCampaigns);
 router.get('/campaigns/:code', getCampaignByCode);
 router.post('/campaigns', authenticateAdmin, createCampaign);
 router.put('/campaigns/:id', authenticateAdmin, updateCampaign);

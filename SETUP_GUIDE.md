@@ -26,7 +26,7 @@ npm run dev
 - `MONGODB_URI` - Your MongoDB connection string (REQUIRED)
 - `JWT_SECRET` - Secret key for JWT tokens, minimum 32 characters (REQUIRED)
 
-The backend will run on `http://localhost:3001` and will exit with an error if required environment variables are not properly configured.
+The backend will run on `http://localhost:3000` and will exit with an error if required environment variables are not properly configured.
 
 ### 2. Frontend Setup
 
@@ -36,7 +36,7 @@ The backend will run on `http://localhost:3001` and will exit with an error if r
 npm install
 
 # Optional: Edit .env file if backend runs on different URL
-# (Default http://localhost:3001/api is already configured)
+# (Default http://localhost:3000/api is already configured)
 
 # Start development server
 npm run dev
@@ -63,7 +63,7 @@ MONGODB_URI=mongodb://localhost:27017/meddent
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production-min-32-chars
 
 # Server Configuration (optional, has defaults)
-PORT=3001
+PORT=3000
 NODE_ENV=development
 
 # Admin Seed Credentials (optional, used when running npm run seed)
@@ -89,9 +89,9 @@ FRONTEND_URL=http://localhost:5173
 #### Frontend `.env` file (OPTIONAL - in project root):
 
 ```env
-# API URL (defaults to http://localhost:3001/api if not set)
+# API URL (defaults to http://localhost:3000/api if not set)
 # Only needed if your backend runs on a different URL
-VITE_API_URL=http://localhost:3001/api
+VITE_API_URL=http://localhost:3000/api
 ```
 
 **Note:** In Vite, environment variables must be prefixed with `VITE_` to be accessible in the browser.
@@ -136,7 +136,7 @@ VITE_API_URL=http://localhost:3001/api
 ### Backend won't start
 - Check MongoDB connection string
 - Ensure MongoDB is running (if local)
-- Check port 3001 is not in use
+- Check port 3000 is not in use
 
 ### Frontend can't connect to API
 - Check `VITE_API_URL` in frontend `.env`

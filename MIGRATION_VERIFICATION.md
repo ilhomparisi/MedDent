@@ -68,7 +68,7 @@ npm run dev
 
 Expected output:
 - ✅ MongoDB Connected
-- ✅ Server running on port 3001
+- ✅ Server running on port 3000
 - ✅ Seeding completed (if RUN_SEED_ON_START=true)
 
 ### 5. Test Frontend
