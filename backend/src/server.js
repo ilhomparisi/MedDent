@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import connectDB from './config/database.js';
 
@@ -21,8 +22,8 @@ import sectionBackgroundsRoutes from './routes/sectionBackgrounds.js';
 import finalCTARoutes from './routes/finalCTA.js';
 import appointmentsRoutes from './routes/appointments.js';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from project root (single .env only)
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 // Validate required environment variables
 const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
@@ -33,8 +34,8 @@ if (missingEnvVars.length > 0) {
   missingEnvVars.forEach(varName => {
     console.error(`   - ${varName}`);
   });
-  console.error('\n💡 Please create a .env file in the backend/ directory with these variables.');
-  console.error('   See ENV_TEMPLATE.txt for an example.\n');
+  console.error('\n💡 Please set these variables in the .env file in the project root.');
+  console.error('   See ENV_TEMPLATE.txt or SETUP_ENV.md for an example.\n');
   process.exit(1);
 }
 
@@ -102,7 +103,14 @@ app.use('/api/upload', uploadRoutes);
 const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
 app.use('/uploads', express.static(uploadDir));
 
-// 404 handler
+// Serve frontend static files (when built and placed in backend/dist, e.g. by single Dockerfile)
+const frontendDist = path.join(__dirname, '../dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res) => res.sendFile(path.join(frontendDist, 'index.html')));
+}
+
+// 404 handler (only reached when not serving frontend)
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });

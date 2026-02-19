@@ -11,9 +11,7 @@ npm install
 
 ### 2. Configure Environment Variables
 
-**⚠️ REQUIRED:** Edit the `.env` file in the `backend/` directory.
-
-The `.env` file already exists with placeholder values. Open it and replace:
+**⚠️ REQUIRED:** Use the single `.env` file in the **project root** (not in `backend/`). Open it and set:
 
 **Required environment variables:**
 - `MONGODB_URI` - MongoDB connection string (REQUIRED)
@@ -30,7 +28,7 @@ The `.env` file already exists with placeholder values. Open it and replace:
 npm run seed
 ```
 
-This will create the initial admin user with credentials from `.env`.
+This will create the initial admin user with credentials from the root `.env`.
 
 ### 4. Start Development Server
 ```bash

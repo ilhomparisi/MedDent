@@ -12,7 +12,7 @@ const connectDB = async () => {
     return conn;
   } catch (error) {
     console.error('❌ Error connecting to MongoDB:', error.message);
-    console.error('💡 Please check your MONGODB_URI in the .env file');
+    console.error('💡 Please check your MONGODB_URI in the root .env file');
     process.exit(1);
   }
 };

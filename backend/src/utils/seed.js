@@ -1,9 +1,12 @@
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import connectDB from '../config/database.js';
 import AdminUser from '../models/AdminUser.js';
 import SiteSetting from '../models/SiteSetting.js';
 
-dotenv.config();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
 // Check if database is empty
 const isDatabaseEmpty = async () => {
