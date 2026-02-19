@@ -68,10 +68,20 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
+
+    const normalizedOrigin = origin.replace(/\/+$/, '');
+    const allowedFrontend = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
+
     // Allow any localhost port in development
-    if (origin.match(/^http:\/\/localhost:\d+$/) || origin === process.env.FRONTEND_URL) {
+    if (normalizedOrigin.match(/^http:\/\/localhost:\d+$/)) {
       return callback(null, true);
     }
+
+    // Allow configured frontend origin (e.g. https://meddent.uz)
+    if (allowedFrontend && normalizedOrigin === allowedFrontend) {
+      return callback(null, true);
+    }
+
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true
