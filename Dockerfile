@@ -17,5 +17,6 @@ COPY backend/ .
 COPY --from=frontend-build /app/dist ./dist
 RUN mkdir -p uploads
 ENV PORT=3000
+ENV NODE_ENV=production
 EXPOSE 3000
 CMD ["node", "src/server.js"]

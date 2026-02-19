@@ -4,7 +4,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const port = parseInt(env.VITE_DEV_PORT || env.PORT || '5173', 10) || 5173;
+  const base = env.VITE_BASE_URL || '/';
   return {
+    base: base.endsWith('/') ? base : `${base}/`,
     plugins: [react()],
     optimizeDeps: {
       exclude: ['lucide-react'],

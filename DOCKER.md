@@ -39,3 +39,9 @@ On Linux/macOS use `$(pwd)/backend/uploads` instead of `%CD%\backend\uploads`.
 - Health: **http://localhost:3000/health**
 
 MongoDB must be reachable from the container (e.g. `mongodb://host.docker.internal:27017/meddent` on Docker Desktop, or a cloud URI).
+
+## On the server
+
+Set **FRONTEND_URL** (or **PUBLIC_URL**) in `.env` to the public URL users use to open the app, e.g. `https://meddent.uz` (no trailing slash). The backend will use it for CORS and for the startup log so you see the real API URL instead of localhost.
+
+If you see a **blank screen** after deploy: open the browser dev tools (F12) → Console and Network. Ensure the page and API are on the same origin (e.g. both `https://meddent.uz`). If the app is served at a subpath (e.g. `https://example.com/app/`), rebuild with `--build-arg VITE_BASE_URL=/app/`.
